@@ -424,6 +424,7 @@ function processData(rows){
   buildAsIsTree();renderAsIsTree();swA('tree');
   document.getElementById('importES').style.display='none';
   updateStats();updateProgress();
+  lsSave();
   toast(`${allDocs.length}개 문서 로드 완료`,'success');
 }
 
@@ -710,6 +711,44 @@ function confirmMove(){
   checkedDocs.clear();updMoveBtn();closeModal('moveModal');toast(`${count}개 문서 이관 완료`,'success');
 }
 
+// ═══════════════════════════════════════════════
+// LOCAL STORAGE
+// ═══════════════════════════════════════════════
+const LS_SLOTS='docflow_slots_v2',LS_ASDATA='docflow_asdata_v2',LS_ACTIVE='docflow_active_v2';
+
+function lsSave(){
+  try{
+    localStorage.setItem(LS_SLOTS,JSON.stringify(savedSlots));
+    localStorage.setItem(LS_ACTIVE,JSON.stringify(activeSlot));
+    if(asIsData.length)localStorage.setItem(LS_ASDATA,JSON.stringify(asIsData));
+  }catch(e){console.warn('localStorage 저장 실패:',e);}
+}
+
+function lsLoad(){
+  try{
+    const slots=localStorage.getItem(LS_SLOTS);
+    if(slots)savedSlots=JSON.parse(slots);
+    const active=localStorage.getItem(LS_ACTIVE);
+    if(active!==null)activeSlot=JSON.parse(active);
+    const asdata=localStorage.getItem(LS_ASDATA);
+    if(asdata){
+      asIsData=JSON.parse(asdata);
+      buildAsIsTree();renderAsIsTree();swA('tree');
+      document.getElementById('importES').style.display='none';
+      updateStats();updateProgress();
+    }
+    if(activeSlot!==null&&savedSlots[activeSlot]){
+      const slot=savedSlots[activeSlot];
+      tobeTree=JSON.parse(JSON.stringify(slot.tree));
+      nodeIdC=100000+activeSlot*10000;
+      allDocs.forEach(d=>{d.mapped=false;d.tobeNodeId=null;});
+      slot.mappings.forEach(m=>{const doc=allDocs.find(d=>d.id===m.id);if(doc){doc.mapped=m.mapped;doc.tobeNodeId=m.tobeNodeId;}});
+      renderTobeTree();renderAsIsTree();updateStats();updateProgress();
+      document.getElementById('tobeES').style.display='none';
+    }
+  }catch(e){console.warn('localStorage 불러오기 실패:',e);}
+}
+
 // SAVE SLOTS
 function renderSlots(){
   const row=document.getElementById('slotsRow');row.innerHTML='';
@@ -730,9 +769,10 @@ function saveToSlot(){
 
 function confirmSlotSave(){
   const name=document.getElementById('slotNameInput').value.trim()||`체계 ${pendingSlotIdx+1}`;
-  savedSlots[pendingSlotIdx]={name,tree:JSON.parse(JSON.stringify(tobeTree)),mappings:allDocs.map(d=>({id:d.id,mapped:d.mapped,tobeNodeId:d.tobeNodeId}))};
+  savedSlots[pendingSlotIdx]={name,tree:JSON.parse(JSON.stringify(tobeTree)),mappings:allDocs.map(d=>({id:d.id,mapped:d.mapped,tobeNodeId:d.tobeNodeId})),savedAt:new Date().toLocaleString()};
   activeSlot=pendingSlotIdx;renderSlots();closeModal('slotNameModal');
-  toast(`슬롯 ${pendingSlotIdx+1}: "${name}" 저장 완료`,'success');
+  lsSave();
+  toast(`슬롯 ${pendingSlotIdx+1}: "${name}" 저장 완료 💾`,'success');
 }
 
 function loadSlot(idx){
@@ -744,13 +784,15 @@ function loadSlot(idx){
   allDocs.forEach(d=>{d.mapped=false;d.tobeNodeId=null;});
   slot.mappings.forEach(m=>{const doc=allDocs.find(d=>d.id===m.id);if(doc){doc.mapped=m.mapped;doc.tobeNodeId=m.tobeNodeId;}});
   activeSlot=idx;renderTobeTree();renderAsIsTree();updateStats();updateProgress();renderSlots();
-  toast(`슬롯 ${idx+1} "${slot.name}" 불러옴`,'success');
+  lsSave();
+  const savedAt=slot.savedAt?` (저장: ${slot.savedAt})`:'';
+  toast(`슬롯 ${idx+1} "${slot.name}" 불러옴${savedAt}`,'success');
 }
 
 function clearCurrentSlot(){
   if(activeSlot===null){toast('불러온 슬롯이 없습니다','warn');return;}
   if(!confirm(`슬롯 ${activeSlot+1}을 삭제하시겠습니까?`))return;
-  savedSlots[activeSlot]=null;activeSlot=null;renderSlots();toast('슬롯 삭제됨','info');
+  savedSlots[activeSlot]=null;activeSlot=null;renderSlots();lsSave();toast('슬롯 삭제됨','info');
 }
 
 // STATS
@@ -915,7 +957,9 @@ function clearAll(){
   document.getElementById('progressWrap').style.display='none';
   document.getElementById('importES').style.display='flex';
   document.getElementById('pasteArea').value='';
-  swA('import');toast('초기화 완료','info');
+  swA('import');
+  try{localStorage.removeItem(LS_SLOTS);localStorage.removeItem(LS_ASDATA);localStorage.removeItem(LS_ACTIVE);}catch(e){}
+  toast('초기화 완료','info');
 }
 
 // INIT
