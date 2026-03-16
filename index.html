@@ -207,6 +207,8 @@ body{font-family:'IBM Plex Sans KR',sans-serif;background:var(--bg-base);color:v
       <div class="prl"><span id="pMapped">0/0</span><span id="pPct">0%</span></div></div>
     </div>
     <button class="btn btn-ghost btn-sm" onclick="clearAll()">🗑 초기화</button>
+    <button class="btn btn-ghost btn-sm" onclick="document.getElementById('jsonFileInput').click()">📂 JSON 가져오기</button>
+    <input type="file" id="jsonFileInput" accept=".json" style="display:none" onchange="importJSON(event)">
     <button class="btn btn-warning btn-sm" onclick="openReport()">📊 검증 리포트</button>
     <button class="btn btn-success btn-sm" onclick="exportData()">⬇ 내보내기</button>
   </div>
@@ -753,8 +755,11 @@ function lsLoad(){
 function renderSlots(){
   const row=document.getElementById('slotsRow');row.innerHTML='';
   savedSlots.forEach((slot,i)=>{
-    const btn=document.createElement('div');btn.className=`slotbtn${slot?' filled':''}${activeSlot===i?' active-slot':''}`;btn.title=slot?slot.name:'빈 슬롯';
+    const btn=document.createElement('div');
+    btn.className=`slotbtn${slot?' filled':''}${activeSlot===i?' active-slot':''}`;
+    btn.title=slot?`${slot.name}${slot.savedAt?'\n저장: '+slot.savedAt:''}`:'빈 슬롯 — 클릭하여 불러오기';
     btn.innerHTML=`<div class="snum">${i+1}</div><div class="sname">${slot?slot.name:'비어있음'}</div>`;
+    if(slot) btn.innerHTML+=`<div style="font-size:7px;color:var(--text-muted);font-family:'IBM Plex Mono',monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:46px">💾 저장됨</div>`;
     btn.addEventListener('click',()=>loadSlot(i));row.appendChild(btn);
   });
 }
@@ -940,6 +945,51 @@ function loadTobeTemplate(){
   toast('건설 프로젝트 템플릿 로드 완료','success');
 }
 
+function importJSON(e){
+  const file=e.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    try{
+      const data=JSON.parse(ev.target.result);
+      // AS-IS 복원
+      if(data.asIs&&data.asIs.length){
+        asIsData=data.asIs;
+        buildAsIsTree();renderAsIsTree();swA('tree');
+        document.getElementById('importES').style.display='none';
+        updateStats();updateProgress();
+      }
+      // To-be 트리 복원
+      if(data.tobe&&data.tobe.length){
+        tobeTree=data.tobe;
+        document.getElementById('tobeES').style.display='none';
+      }
+      // 매핑 복원
+      if(data.mappings&&data.mappings.length){
+        data.mappings.forEach(m=>{
+          const doc=allDocs.find(d=>d.id===m.id);
+          if(doc){doc.mapped=m.mapped;doc.tobeNodeId=m.tobeNodeId;}
+        });
+        // tobe tree docs 배열도 재구성
+        function rebuildDocs(nodes){
+          nodes.forEach(n=>{
+            n.docs=allDocs.filter(d=>d.tobeNodeId===n.id).map(d=>d.id);
+            rebuildDocs(n.children);
+          });
+        }
+        rebuildDocs(tobeTree);
+      }
+      renderTobeTree();renderAsIsTree();updateStats();updateProgress();renderSlots();
+      lsSave();
+      toast('JSON 가져오기 완료! 작업 내용이 복원됐습니다','success');
+    }catch(err){
+      toast('JSON 파일 오류: '+err.message,'error');
+    }
+    // input 초기화 (같은 파일 재업로드 가능하게)
+    e.target.value='';
+  };
+  reader.readAsText(file,'UTF-8');
+}
+
 function exportData(){
   const data={exportedAt:new Date().toISOString(),asIs:asIsData,tobe:tobeTree,mappings:allDocs.map(d=>({id:d.id,name:d.name,asIsPath:d.path,mapped:d.mapped,tobePath:d.tobeNodeId?getPath(d.tobeNodeId):null}))};
   const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
@@ -962,7 +1012,8 @@ function clearAll(){
   toast('초기화 완료','info');
 }
 
-// INIT
+// INIT — localStorage에서 복원 후 렌더
+lsLoad();
 renderTobeTree();renderSlots();
 </script>
 </body>
