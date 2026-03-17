@@ -10,12 +10,12 @@
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'IBM Plex Sans KR',sans-serif;background:var(--bg-base);color:var(--text-primary);height:100vh;overflow:hidden;background-image:linear-gradient(var(--grid-line) 1px,transparent 1px),linear-gradient(90deg,var(--grid-line) 1px,transparent 1px);background-size:40px 40px;}
 .header{height:50px;background:linear-gradient(90deg,#0a0e1a,#0f1828 50%,#0a0e1a);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 14px;gap:10px;z-index:100;position:relative;}
-.logo{font-family:'Bebas Neue',cursive;font-size:21px;letter-spacing:3px;color:var(--accent-cyan);text-shadow:0 0 12px rgba(6,182,212,0.4);}
+.logo{font-family:'Bebas Neue',cursive;font-size:22px;letter-spacing:3px;color:var(--accent-cyan);text-shadow:0 0 12px rgba(6,182,212,0.4);}
 .logo span{color:var(--accent-blue);}
 .hd{width:1px;height:22px;background:var(--border-bright);}
-.hs{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text-muted);letter-spacing:1.5px;text-transform:uppercase;}
+.hs{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-muted);letter-spacing:1.5px;text-transform:uppercase;}
 .ha{margin-left:auto;display:flex;gap:6px;align-items:center;}
-.btn{display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:4px;border:none;cursor:pointer;font-family:'IBM Plex Sans KR',sans-serif;font-size:11px;font-weight:500;transition:all 0.15s;white-space:nowrap;}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:4px;border:none;cursor:pointer;font-family:'IBM Plex Sans KR',sans-serif;font-size:12px;font-weight:500;transition:all 0.15s;white-space:nowrap;}
 .btn-primary{background:var(--accent-blue);color:#fff;}.btn-primary:hover{background:#1d4ed8;}
 .btn-success{background:var(--accent-green);color:#fff;}.btn-success:hover{background:#059669;}
 .btn-warning{background:var(--accent-orange);color:#000;}.btn-warning:hover{background:#d97706;}
@@ -24,11 +24,11 @@ body{font-family:'IBM Plex Sans KR',sans-serif;background:var(--bg-base);color:v
 .workspace{display:grid;grid-template-columns:1fr 22px 1fr;height:calc(100vh - 50px);}
 .panel{display:flex;flex-direction:column;background:var(--bg-panel);overflow:hidden;}
 .ph{padding:9px 13px;border-bottom:1px solid var(--border);background:var(--bg-card);display:flex;align-items:center;gap:8px;flex-shrink:0;}
-.pb-badge{font-family:'IBM Plex Mono',monospace;font-size:9px;padding:2px 6px;border-radius:2px;letter-spacing:1.2px;text-transform:uppercase;}
+.pb-badge{font-family:'IBM Plex Mono',monospace;font-size:10px;padding:2px 6px;border-radius:2px;letter-spacing:1.2px;text-transform:uppercase;}
 .bais{background:rgba(245,158,11,0.15);color:var(--accent-orange);border:1px solid rgba(245,158,11,0.3);}
 .btobe{background:rgba(16,185,129,0.15);color:var(--accent-green);border:1px solid rgba(16,185,129,0.3);}
-.ptitle{font-size:12px;font-weight:600;}
-.pstats{margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text-muted);}
+.ptitle{font-size:13px;font-weight:600;}
+.pstats{margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-muted);}
 .ptb{padding:6px 9px;border-bottom:1px solid var(--border);display:flex;gap:5px;align-items:center;flex-wrap:wrap;background:var(--bg-base);flex-shrink:0;}
 .pb{flex:1;overflow-y:auto;padding:5px;}
 .pb::-webkit-scrollbar{width:3px;}.pb::-webkit-scrollbar-thumb{background:var(--border-bright);border-radius:2px;}
@@ -36,7 +36,7 @@ body{font-family:'IBM Plex Sans KR',sans-serif;background:var(--bg-base);color:v
 .dd{width:3px;height:3px;border-radius:50%;background:var(--border-bright);}
 /* TABS */
 .stabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--bg-card);}
-.stab{padding:6px 12px;font-size:10px;cursor:pointer;color:var(--text-muted);border-bottom:2px solid transparent;transition:all 0.15s;user-select:none;white-space:nowrap;}
+.stab{padding:6px 12px;font-size:11px;cursor:pointer;color:var(--text-muted);border-bottom:2px solid transparent;transition:all 0.15s;user-select:none;white-space:nowrap;}
 .stab:hover{color:var(--text-secondary);}.stab.active{color:var(--accent-cyan);border-bottom-color:var(--accent-cyan);}
 .tc{display:none;flex-direction:column;flex:1;overflow:hidden;}.tc.active{display:flex;}
 /* FOLDER ICONS by level - implemented in JS as SVG */
@@ -46,14 +46,14 @@ body{font-family:'IBM Plex Sans KR',sans-serif;background:var(--bg-base);color:v
 .viz-group{margin-bottom:14px;}
 .viz-gh{display:flex;align-items:center;gap:7px;padding:7px 11px;background:var(--bg-card);border:1px solid var(--border);border-radius:5px;margin-bottom:6px;cursor:pointer;user-select:none;}
 .viz-gh:hover{background:var(--bg-hover);}
-.viz-gtitle{font-size:12px;font-weight:600;color:var(--accent-cyan);}
+.viz-gtitle{font-size:13px;font-weight:600;color:var(--accent-cyan);}
 .viz-tabs-row{display:flex;gap:7px;flex-wrap:wrap;padding-left:14px;}
 .viz-card{background:var(--bg-card);border:1px solid var(--border);border-radius:5px;overflow:hidden;min-width:150px;max-width:210px;flex:1;cursor:pointer;transition:all 0.15s;}
 .viz-card:hover{border-color:var(--border-bright);transform:translateY(-1px);box-shadow:0 3px 10px rgba(0,0,0,0.3);}
 .viz-ch{padding:7px 9px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:5px;background:rgba(37,99,235,0.07);}
-.viz-cn{font-size:11px;font-weight:600;color:#93c5fd;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.viz-cn{font-size:12px;font-weight:600;color:#93c5fd;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .viz-cb{flex:1;padding:5px 7px;}
-.viz-row{display:flex;align-items:center;gap:4px;padding:2px 0;font-size:10px;color:var(--text-secondary);border-bottom:1px dashed var(--border);}
+.viz-row{display:flex;align-items:center;gap:4px;padding:2px 0;font-size:11px;color:var(--text-secondary);border-bottom:1px dashed var(--border);}
 .viz-row:last-child{border-bottom:none;}
 .viz-rn{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .cnt-badge{font-family:'IBM Plex Mono',monospace;font-size:9px;padding:1px 4px;background:rgba(37,99,235,0.15);color:var(--text-accent);border-radius:2px;}
@@ -65,21 +65,21 @@ body{font-family:'IBM Plex Sans KR',sans-serif;background:var(--bg-base);color:v
 .ti:hover{background:var(--bg-hover);}
 .ttog{width:14px;height:14px;display:flex;align-items:center;justify-content:center;border-radius:2px;font-size:9px;color:var(--text-muted);flex-shrink:0;background:var(--bg-card);border:1px solid var(--border);transition:all 0.15s;}
 .ttog:hover{background:var(--bg-hover);}.ttog.open{color:var(--accent-cyan);border-color:var(--accent-cyan);}
-.tlbl{font-size:11px;color:var(--text-primary);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.tlbl{font-size:12px;color:var(--text-primary);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .tch{padding-left:16px;display:none;}.tch.open{display:block;}
-.lv0 .tlbl{color:var(--accent-cyan);font-weight:600;font-size:12px;}
+.lv0 .tlbl{color:var(--accent-cyan);font-weight:600;font-size:13px;}
 .lv1 .tlbl{color:#93c5fd;font-weight:500;}
 .lv2 .tlbl{color:var(--text-primary);}
-.lv3 .tlbl{color:var(--text-secondary);font-size:11px;}
-.dcb-badge{font-family:'IBM Plex Mono',monospace;font-size:9px;padding:1px 4px;border-radius:8px;background:rgba(37,99,235,0.2);color:var(--text-accent);}
+.lv3 .tlbl{color:var(--text-secondary);font-size:12px;}
+.dcb-badge{font-family:'IBM Plex Mono',monospace;font-size:10px;padding:1px 4px;border-radius:8px;background:rgba(37,99,235,0.2);color:var(--text-accent);}
 /* DOC ITEM */
 .doci{display:flex;align-items:center;gap:4px;padding:3px 6px;border-radius:3px;cursor:pointer;transition:all 0.1s;border:1px solid transparent;}
 .doci:hover{background:var(--bg-hover);border-color:var(--border);}
 .doci.mapped{background:rgba(16,185,129,0.07);border-color:rgba(16,185,129,0.2);}
 .doci.dragging{opacity:0.4;}
 .dcb{width:11px;height:11px;accent-color:var(--accent-blue);cursor:pointer;flex-shrink:0;}
-.dn{font-size:10px;color:var(--text-secondary);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.ds{font-size:9px;padding:1px 3px;border-radius:2px;font-family:'IBM Plex Mono',monospace;flex-shrink:0;}
+.dn{font-size:11px;color:var(--text-secondary);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ds{font-size:10px;padding:1px 3px;border-radius:2px;font-family:'IBM Plex Mono',monospace;flex-shrink:0;}
 .sm{background:rgba(16,185,129,0.2);color:var(--accent-green);}
 .sp{background:rgba(245,158,11,0.12);color:var(--accent-orange);}
 .ddh{color:var(--text-muted);font-size:10px;cursor:grab;padding:0 1px;flex-shrink:0;}.ddh:active{cursor:grabbing;}
@@ -88,14 +88,14 @@ body{font-family:'IBM Plex Sans KR',sans-serif;background:var(--bg-base);color:v
 .tbi{display:flex;align-items:center;gap:4px;padding:4px 8px;border-radius:4px;background:var(--bg-card);border:1px solid var(--border);transition:all 0.15s;}
 .tbi:hover{border-color:var(--border-bright);background:var(--bg-hover);}
 .tbi.dovo{border-color:var(--accent-cyan);background:rgba(6,182,212,0.08);box-shadow:0 0 8px rgba(6,182,212,0.15);}
-.tbli{background:transparent;border:none;outline:none;color:var(--text-primary);font-family:'IBM Plex Sans KR',sans-serif;font-size:11px;flex:1;min-width:40px;}
+.tbli{background:transparent;border:none;outline:none;color:var(--text-primary);font-family:'IBM Plex Sans KR',sans-serif;font-size:12px;flex:1;min-width:40px;}
 .tbli:focus{background:var(--bg-base);border-radius:2px;padding:0 3px;}
 .tbacts{display:flex;gap:2px;margin-left:auto;flex-shrink:0;}
 .tbch{padding-left:16px;display:none;}.tbch.open{display:block;}
 .tbdl{padding:3px 5px;display:flex;flex-wrap:wrap;gap:2px;}
-.tbdc{display:inline-flex;align-items:center;gap:2px;background:rgba(37,99,235,0.15);border:1px solid rgba(37,99,235,0.3);border-radius:3px;padding:1px 5px;font-size:9px;color:#93c5fd;}
-.tbdc .rmd{cursor:pointer;color:var(--text-muted);font-size:9px;}.tbdc .rmd:hover{color:var(--accent-red);}
-.tbdz{min-height:26px;border:1px dashed var(--border);border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--text-muted);margin:2px 0;transition:all 0.15s;}
+.tbdc{display:inline-flex;align-items:center;gap:2px;background:rgba(37,99,235,0.15);border:1px solid rgba(37,99,235,0.3);border-radius:3px;padding:1px 5px;font-size:10px;color:#93c5fd;}
+.tbdc .rmd{cursor:pointer;color:var(--text-muted);font-size:10px;}.tbdc .rmd:hover{color:var(--accent-red);}
+.tbdz{min-height:26px;border:1px dashed var(--border);border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--text-muted);margin:2px 0;transition:all 0.15s;}
 .tbdz.over{border-color:var(--accent-cyan);background:rgba(6,182,212,0.07);color:var(--accent-cyan);}
 .tbl0 .tbi{border-left:3px solid var(--accent-cyan);}.tbl0 .tbli{color:var(--accent-cyan);font-weight:600;}
 .tbl1 .tbi{border-left:3px solid #93c5fd;}.tbl1 .tbli{color:#93c5fd;font-weight:500;}
@@ -104,46 +104,46 @@ body{font-family:'IBM Plex Sans KR',sans-serif;background:var(--bg-base);color:v
 .tbscroll{overflow-y:auto;flex:1;padding:5px;}.tbscroll::-webkit-scrollbar{width:3px;}.tbscroll::-webkit-scrollbar-thumb{background:var(--border-bright);}
 /* SLOTS */
 .slotsbar{padding:6px 9px;border-bottom:1px solid var(--border);background:var(--bg-base);flex-shrink:0;display:flex;gap:5px;align-items:center;}
-.slotslbl{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.2px;flex-shrink:0;}
+.slotslbl{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.2px;flex-shrink:0;}
 .slotbtn{display:flex;flex-direction:column;align-items:center;gap:1px;padding:3px 7px;border-radius:4px;border:1px solid var(--border);background:var(--bg-card);cursor:pointer;transition:all 0.15s;min-width:48px;}
 .slotbtn:hover{border-color:var(--border-bright);background:var(--bg-hover);}
 .slotbtn.filled{border-color:rgba(16,185,129,0.4);background:rgba(16,185,129,0.05);}
 .slotbtn.active-slot{border-color:var(--accent-cyan);background:rgba(6,182,212,0.07);box-shadow:0 0 7px rgba(6,182,212,0.2);}
 .snum{font-family:'Bebas Neue',cursive;font-size:15px;line-height:1;color:var(--text-muted);}
 .slotbtn.filled .snum{color:var(--accent-green);}.slotbtn.active-slot .snum{color:var(--accent-cyan);}
-.sname{font-size:8px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:46px;text-align:center;}
+.sname{font-size:9px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:46px;text-align:center;}
 .slotbtn.filled .sname{color:var(--text-secondary);}
 /* IMPORT */
 .ia{margin:5px;border:1px dashed var(--border-bright);border-radius:5px;overflow:hidden;flex-shrink:0;}
-.iah{background:var(--bg-card);padding:6px 10px;display:flex;align-items:center;gap:6px;cursor:pointer;font-size:10px;color:var(--text-secondary);user-select:none;}
+.iah{background:var(--bg-card);padding:6px 10px;display:flex;align-items:center;gap:6px;cursor:pointer;font-size:11px;color:var(--text-secondary);user-select:none;}
 .iah:hover{background:var(--bg-hover);}
 .iab{display:none;padding:8px;background:var(--bg-base);}.iab.open{display:block;}
-.iat{width:100%;height:80px;background:var(--bg-card);border:1px solid var(--border);border-radius:3px;color:var(--text-primary);font-family:'IBM Plex Mono',monospace;font-size:10px;padding:6px;resize:vertical;outline:none;}
+.iat{width:100%;height:80px;background:var(--bg-card);border:1px solid var(--border);border-radius:3px;color:var(--text-primary);font-family:'IBM Plex Mono',monospace;font-size:11px;padding:6px;resize:vertical;outline:none;}
 .iat:focus{border-color:var(--accent-blue);}
-.ihelp{font-size:9px;color:var(--text-muted);margin-top:4px;line-height:1.5;}
+.ihelp{font-size:10px;color:var(--text-muted);margin-top:4px;line-height:1.5;}
 .fdz{border:1px dashed var(--border-bright);border-radius:4px;padding:11px;text-align:center;cursor:pointer;background:var(--bg-base);transition:all 0.2s;margin-bottom:5px;}
 .fdz:hover,.fdz.drag-over{border-color:var(--accent-blue);background:rgba(37,99,235,0.05);}
-.fdz .di{font-size:18px;margin-bottom:2px;}.fdz p{font-size:10px;color:var(--text-secondary);}.fdz span{color:var(--accent-cyan);}
+.fdz .di{font-size:18px;margin-bottom:2px;}.fdz p{font-size:11px;color:var(--text-secondary);}.fdz span{color:var(--accent-cyan);}
 #fileInput{display:none;}
 /* MODAL */
 .mo{position:fixed;inset:0;background:rgba(0,0,0,0.72);display:none;align-items:center;justify-content:center;z-index:1000;backdrop-filter:blur(4px);}
 .mo.open{display:flex;}
 .modal{background:var(--bg-panel);border:1px solid var(--border-bright);border-radius:7px;width:840px;max-width:96vw;max-height:88vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(0,0,0,0.5),0 0 20px rgba(37,99,235,0.15);}
 .mh{padding:13px 17px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:9px;background:var(--bg-card);}
-.mt{font-size:13px;font-weight:600;}
+.mt{font-size:14px;font-weight:600;}
 .mc{margin-left:auto;background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:16px;line-height:1;padding:2px 5px;}
 .mc:hover{color:var(--text-primary);}
 .mb{padding:16px;overflow-y:auto;flex:1;}.mb::-webkit-scrollbar{width:3px;}.mb::-webkit-scrollbar-thumb{background:var(--border-bright);}
 .mf{padding:11px 17px;border-top:1px solid var(--border);display:flex;gap:6px;justify-content:flex-end;}
 .mtabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:14px;}
-.mtab{padding:7px 14px;font-size:10px;cursor:pointer;color:var(--text-muted);border-bottom:2px solid transparent;transition:all 0.15s;user-select:none;}
+.mtab{padding:7px 14px;font-size:11px;cursor:pointer;color:var(--text-muted);border-bottom:2px solid transparent;transition:all 0.15s;user-select:none;}
 .mtab.active{color:var(--accent-cyan);border-bottom-color:var(--accent-cyan);}
 .mtc{display:none;}.mtc.active{display:block;}
 /* REPORT */
 .rstats{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:12px;}
 .sc{background:var(--bg-card);border:1px solid var(--border);border-radius:5px;padding:10px;text-align:center;}
 .sv{font-family:'Bebas Neue',cursive;font-size:24px;line-height:1;margin-bottom:2px;}
-.sl{font-size:9px;color:var(--text-muted);}
+.sl{font-size:10px;color:var(--text-muted);}
 .stot{color:var(--text-accent);}.sok{color:var(--accent-green);}.swarn{color:var(--accent-orange);}.serr{color:var(--accent-red);}
 .rsect{margin-bottom:16px;}
 .rh{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:1.2px;color:var(--text-muted);margin-bottom:7px;padding-bottom:4px;border-bottom:1px solid var(--border);font-family:'IBM Plex Mono',monospace;display:flex;align-items:center;gap:5px;}
@@ -207,10 +207,11 @@ body{font-family:'IBM Plex Sans KR',sans-serif;background:var(--bg-base);color:v
       <div class="prl"><span id="pMapped">0/0</span><span id="pPct">0%</span></div></div>
     </div>
     <button class="btn btn-ghost btn-sm" onclick="clearAll()">🗑 초기화</button>
+    <button class="btn btn-ghost btn-sm" onclick="undoLastAction()" title="한 단계 되돌리기">↩ 되돌리기</button>
     <button class="btn btn-ghost btn-sm" onclick="document.getElementById('jsonFileInput').click()">📂 JSON 가져오기</button>
     <input type="file" id="jsonFileInput" accept=".json" style="display:none" onchange="importJSON(event)">
+    <button class="btn btn-success btn-sm" onclick="exportData()">⬇ JSON 내보내기</button>
     <button class="btn btn-warning btn-sm" onclick="openReport()">📊 검증 리포트</button>
-    <button class="btn btn-success btn-sm" onclick="exportData()">⬇ 내보내기</button>
   </div>
 </div>
 
@@ -353,8 +354,9 @@ body{font-family:'IBM Plex Sans KR',sans-serif;background:var(--bg-base);color:v
 <script>
 // STATE
 let asIsData=[],asIsTreeData={},tobeTree=[],allDocs=[],checkedDocs=new Set();
-let draggedDoc=null,moveTarget=null,nodeIdC=1,docIdC=1,impOpen=false;
+let draggedDoc=null,draggedDocs=[],moveTarget=null,nodeIdC=1,docIdC=1,impOpen=false;
 let activeSlot=null,savedSlots=[null,null,null,null,null],pendingSlotIdx=null;
+let undoStack=[];
 
 // FOLDER SVGs — visually distinct per depth
 function fsvg(level,sz=16){
@@ -522,16 +524,59 @@ function mkDI(doc){
   const name=document.createElement('span');name.className='dn';name.title=doc.path;name.textContent=doc.name;
   const stat=document.createElement('span');stat.className=`ds ${doc.mapped?'sm':'sp'}`;stat.textContent=doc.mapped?'이관됨':'대기';
   el.appendChild(drag);el.appendChild(cb);el.appendChild(ico);el.appendChild(name);el.appendChild(stat);
-  el.addEventListener('dragstart',e=>{draggedDoc=doc;el.classList.add('dragging');e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',doc.id);});
-  el.addEventListener('dragend',()=>{el.classList.remove('dragging');draggedDoc=null;});
-  el.addEventListener('click',e=>{if(e.target===cb||e.target===drag)return;cb.checked=!cb.checked;if(cb.checked)checkedDocs.add(doc.id);else checkedDocs.delete(doc.id);updMoveBtn();});
+  el.addEventListener('dragstart',e=>{
+    draggedDoc=doc;
+    // 체크된 문서가 있고 이 문서도 체크된 경우 → 모두 드래그
+    if(checkedDocs.size>0&&checkedDocs.has(doc.id)){
+      draggedDocs=[...checkedDocs];
+    } else {
+      draggedDocs=[doc.id];
+    }
+    el.classList.add('dragging');e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',doc.id);
+  });
+  el.addEventListener('dragend',()=>{el.classList.remove('dragging');});
+  el.addEventListener('click',e=>{
+    if(e.target===drag)return;
+    // 문서명 클릭 또는 체크박스 클릭 모두 선택 토글
+    cb.checked=!cb.checked;if(cb.checked)checkedDocs.add(doc.id);else checkedDocs.delete(doc.id);updMoveBtn();
+  });
   return el;
 }
 
 function updMoveBtn(){const btn=document.getElementById('moveBtn');btn.style.display=checkedDocs.size>0?'inline-flex':'none';btn.textContent=`✈ 선택 이관 (${checkedDocs.size})`;}
 function expandAll(){document.querySelectorAll('#asIsTreeEl .tch').forEach(e=>e.classList.add('open'));document.querySelectorAll('#asIsTreeEl .ttog').forEach(t=>{t.classList.add('open');t.textContent='−';});}
 function collapseAll(){document.querySelectorAll('#asIsTreeEl .tch').forEach(e=>e.classList.remove('open'));document.querySelectorAll('#asIsTreeEl .ttog').forEach(t=>{t.classList.remove('open');t.textContent='+';});}
-function filterTree(q){const qq=q.toLowerCase().trim();document.querySelectorAll('.doci').forEach(el=>{el.style.display=!qq||el.querySelector('.dn').textContent.toLowerCase().includes(qq)?'':''});}
+function filterTree(q){
+  const qq=q.toLowerCase().trim();
+  if(!qq){
+    // 검색어 없으면 모두 원래대로
+    document.querySelectorAll('#asIsTreeEl .doci').forEach(el=>el.style.display='');
+    document.querySelectorAll('#asIsTreeEl .tnode').forEach(el=>el.style.display='');
+    return;
+  }
+  // 문서 보/숨기기
+  document.querySelectorAll('#asIsTreeEl .doci').forEach(el=>{
+    const match=el.querySelector('.dn').textContent.toLowerCase().includes(qq);
+    el.style.display=match?'':'none';
+  });
+  // 폴더(tnode) — 하위에 보이는 문서가 있으면 보이고, 없으면 숨기기
+  // leaf 폴더부터 위로 올라가며 처리
+  document.querySelectorAll('#asIsTreeEl .tnode').forEach(el=>{
+    const hasDocs=el.querySelector('.doci:not([style*="display: none"]):not([style*="display:none"])');
+    // .tch 안에 직접 들어있는지 체크
+    const hasVisible=[...el.querySelectorAll('.doci')].some(d=>d.style.display!=='none');
+    el.style.display=hasVisible?'':'none';
+    // 매칭된 게 있으면 부모 tch 열기
+    if(hasVisible){
+      let p=el.parentElement;
+      while(p&&p.id!=='asIsTreeEl'){
+        if(p.classList.contains('tch')){p.classList.add('open');}
+        if(p.classList.contains('tnode')){p.style.display='';}
+        p=p.parentElement;
+      }
+    }
+  });
+}
 
 // AS-IS VISUAL
 function renderAsisViz(){
@@ -634,10 +679,11 @@ function renderTobeTree(){
 }
 
 function bldTN(node){
+  const canDrop=node.level>=2; // 0,1depth는 문서 드롭 불가
   const wrap=document.createElement('div');wrap.className=`tbnode tbl${node.level}`;wrap.dataset.nodeId=node.id;
   const item=document.createElement('div');item.className='tbi';
-  const tog=document.createElement('div');tog.className=`ttog${node.open?' open':''}`;tog.textContent=node.open?'−':'+';
-  tog.addEventListener('click',e=>{e.stopPropagation();node.open=!node.open;ch.classList.toggle('open',node.open);tog.classList.toggle('open',node.open);tog.textContent=node.open?'−':'+';});
+  const tog=document.createElement('div');tog.className=`ttog${node.open?' open':''}`;tog.textContent=node.open?'-':'+';
+  tog.addEventListener('click',e=>{e.stopPropagation();node.open=!node.open;ch.classList.toggle('open',node.open);tog.classList.toggle('open',node.open);tog.textContent=node.open?'-':'+';});
   const ico=document.createElement('span');ico.className='fi';ico.innerHTML=fsvg(node.level,node.level===0?18:node.level===1?16:node.level===2?14:12);
   const inp=document.createElement('input');inp.type='text';inp.className='tbli';inp.value=node.label;
   inp.addEventListener('change',e=>{node.label=e.target.value;updateStats();});
@@ -645,26 +691,27 @@ function bldTN(node){
   const dc=cntDocs(node);const badge=document.createElement('span');if(dc>0){badge.className='dcb-badge';badge.textContent=dc+'개';}
   const acts=document.createElement('div');acts.className='tbacts';
   if(node.level<3){const ab=document.createElement('button');ab.className='btn btn-ghost btn-sm btn-icon';ab.title='하위 추가';ab.textContent='+';ab.addEventListener('click',e=>{e.stopPropagation();addTobeChild(node.id,node.level);});acts.appendChild(ab);}
-  const db=document.createElement('button');db.className='btn btn-ghost btn-sm btn-icon';db.title='삭제';db.style.color='var(--accent-red)';db.textContent='✕';db.addEventListener('click',e=>{e.stopPropagation();delTN(node.id);});acts.appendChild(db);
+  const db=document.createElement('button');db.className='btn btn-ghost btn-sm btn-icon';db.title='삭제';db.style.color='var(--accent-red)';db.textContent='x';db.addEventListener('click',e=>{e.stopPropagation();delTN(node.id);});acts.appendChild(db);
   item.appendChild(tog);item.appendChild(ico);item.appendChild(inp);item.appendChild(badge);item.appendChild(acts);
-  item.addEventListener('dragover',e=>{e.preventDefault();item.classList.add('dovo');});
-  item.addEventListener('dragleave',()=>item.classList.remove('dovo'));
-  item.addEventListener('drop',e=>{e.preventDefault();item.classList.remove('dovo');if(draggedDoc)mapDoc(draggedDoc.id,node.id);});
+  if(canDrop){
+    item.addEventListener('dragover',e=>{e.preventDefault();item.classList.add('dovo');});
+    item.addEventListener('dragleave',()=>item.classList.remove('dovo'));
+    item.addEventListener('drop',e=>{
+      e.preventDefault();item.classList.remove('dovo');
+      const docs=draggedDocs.length>0?[...draggedDocs]:(draggedDoc?[draggedDoc.id]:[]);
+      if(docs.length>0){saveUndoState();docs.forEach(id=>mapDoc(id,node.id,true));finalizeMapDoc();}
+    });
+  }
   const ch=document.createElement('div');ch.className=`tbch${node.open?' open':''}`;
-  const dz=document.createElement('div');dz.className='tbdz';dz.textContent='📄 문서를 여기에 드롭';
-  dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('over');});
-  dz.addEventListener('dragleave',()=>dz.classList.remove('over'));
-  dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('over');if(draggedDoc)mapDoc(draggedDoc.id,node.id);});
-  ch.appendChild(dz);
-  if(node.docs.length){
+  if(canDrop&&node.docs.length){
     const dl=document.createElement('div');dl.className='tbdl';
     node.docs.forEach(did=>{
       const doc=allDocs.find(d=>d.id===did);if(!doc)return;
       const chip=document.createElement('span');chip.className='tbdc';
       const dico=document.createElement('span');dico.className='fi';dico.innerHTML=fsvg(4,10);chip.appendChild(dico);
       chip.appendChild(document.createTextNode(doc.name));
-      const rm=document.createElement('span');rm.className='rmd';rm.textContent='✕';rm.title='이관 취소';
-      rm.addEventListener('click',()=>unMapDoc(did,node.id));chip.appendChild(rm);dl.appendChild(chip);
+      const rm=document.createElement('span');rm.className='rmd';rm.textContent='x';rm.title='이관 취소';
+      rm.addEventListener('click',()=>{saveUndoState();unMapDoc(did,node.id);});chip.appendChild(rm);dl.appendChild(chip);
     });ch.appendChild(dl);
   }
   node.children.forEach(c=>ch.appendChild(bldTN(c)));
@@ -672,19 +719,75 @@ function bldTN(node){
 }
 
 // MAPPING
-function mapDoc(docId,nodeId){
+
+// saveUndoState: 현재 상태를 undo 스택에 저장
+function saveUndoState(){
+  undoStack.push({
+    tobeTree:JSON.parse(JSON.stringify(tobeTree)),
+    docs:allDocs.map(d=>({id:d.id,mapped:d.mapped,tobeNodeId:d.tobeNodeId}))
+  });
+  if(undoStack.length>50)undoStack.shift();
+}
+
+function undoLastAction(){
+  if(!undoStack.length){toast('되돌릴 작업이 없습니다','warn');return;}
+  const prev=undoStack.pop();
+  tobeTree=prev.tobeTree;
+  prev.docs.forEach(s=>{const d=allDocs.find(x=>x.id===s.id);if(d){d.mapped=s.mapped;d.tobeNodeId=s.tobeNodeId;}});
+  renderTobeTree();renderAsIsTree();updateProgress();updateStats();
+  toast('되돌리기 완료','info');
+}
+
+// 현재 AS-IS 트리의 펼침 상태를 배열로 저장
+function getAsIsOpenState(){
+  const state=[];
+  document.querySelectorAll('#asIsTreeEl .tch').forEach(el=>{state.push(el.classList.contains('open'));});
+  return state;
+}
+
+// 저장된 펼침 상태 복원
+function applyAsIsOpenState(state){
+  const chs=document.querySelectorAll('#asIsTreeEl .tch');
+  const togs=document.querySelectorAll('#asIsTreeEl .ttog');
+  chs.forEach((el,i)=>{
+    if(state[i]===undefined)return;
+    if(state[i]){el.classList.add('open');}else{el.classList.remove('open');}
+  });
+  togs.forEach((t,i)=>{
+    const open=chs[i]&&chs[i].classList.contains('open');
+    if(open){t.classList.add('open');t.textContent='-';}else{t.classList.remove('open');t.textContent='+';}
+  });
+}
+
+// mapDoc: batch=true면 렌더링 생략
+function mapDoc(docId,nodeId,batch=false){
   const doc=allDocs.find(d=>d.id===docId),node=findN(tobeTree,nodeId);if(!doc||!node)return;
   if(doc.tobeNodeId){const p=findN(tobeTree,doc.tobeNodeId);if(p)p.docs=p.docs.filter(id=>id!==docId);}
   doc.mapped=true;doc.tobeNodeId=nodeId;if(!node.docs.includes(docId))node.docs.push(docId);
-  renderTobeTree();renderAsIsTree();updateProgress();updateStats();
-  toast(`"${doc.name}" → ${getPath(nodeId)}`,'success');
+  if(!batch){
+    renderTobeTree();
+    const st=getAsIsOpenState();renderAsIsTree();applyAsIsOpenState(st);
+    updateProgress();updateStats();
+    toast(`"${doc.name}" → ${getPath(nodeId)}`,'success');
+  }
+}
+
+// finalizeMapDoc: 다중 문서 이동 후 일괄 렌더링
+function finalizeMapDoc(){
+  renderTobeTree();
+  const st=getAsIsOpenState();renderAsIsTree();applyAsIsOpenState(st);
+  updateProgress();updateStats();
+  const cnt=draggedDocs.length>1?draggedDocs.length:1;
+  toast(`${cnt}개 문서 이관 완료`,'success');
+  draggedDocs=[];draggedDoc=null;
 }
 
 function unMapDoc(docId,nodeId){
   const doc=allDocs.find(d=>d.id===docId),node=findN(tobeTree,nodeId);
   if(doc){doc.mapped=false;doc.tobeNodeId=null;}if(node)node.docs=node.docs.filter(id=>id!==docId);
-  renderTobeTree();renderAsIsTree();updateProgress();updateStats();toast('이관 취소됨','info');
+  renderTobeTree();const st=getAsIsOpenState();renderAsIsTree();applyAsIsOpenState(st);updateProgress();updateStats();toast('이관 취소됨','info');
 }
+
 
 function getPath(nodeId){const p=[];function s(ns,id,path){for(const n of ns){const np=[...path,n.label];if(n.id===id){p.push(...np);return true;}if(s(n.children,id,np))return true;}return false;}s(tobeTree,nodeId,[]);return p.join(' > ');}
 
@@ -709,7 +812,9 @@ function moveCheckedDocs(){
 
 function confirmMove(){
   if(!moveTarget){toast('이관 대상을 선택해주세요','warn');return;}
-  let count=0;checkedDocs.forEach(did=>{mapDoc(did,moveTarget);count++;});
+  saveUndoState();
+  let count=0;checkedDocs.forEach(did=>{mapDoc(did,moveTarget,true);count++;});
+  const st=getAsIsOpenState();renderTobeTree();renderAsIsTree();applyAsIsOpenState(st);updateProgress();updateStats();
   checkedDocs.clear();updMoveBtn();closeModal('moveModal');toast(`${count}개 문서 이관 완료`,'success');
 }
 
