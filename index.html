@@ -357,6 +357,7 @@ let asIsData=[],asIsTreeData={},tobeTree=[],allDocs=[],checkedDocs=new Set();
 let draggedDoc=null,draggedDocs=[],moveTarget=null,nodeIdC=1,docIdC=1,impOpen=false;
 let activeSlot=null,savedSlots=[null,null,null,null,null],pendingSlotIdx=null;
 let undoStack=[];
+let clipboardNode=null; // 복사된 노드 저장
 
 // FOLDER SVGs — visually distinct per depth
 function fsvg(level,sz=16){
@@ -656,6 +657,65 @@ function addTobeChild(pid,pl){
   const p=findN(tobeTree,pid);if(p){p.children.push(node);renderTobeTree();updateStats();}
 }
 
+// 노드 깊은 복사 (새 id 부여, docs 비움 - 구조만 복사)
+function deepCloneNode(node,parentLevel){
+  const lvl=parentLevel===undefined?node.level:parentLevel;
+  const cloned={
+    id:uid(),
+    label:node.label,
+    level:lvl,
+    open:true,
+    docs:[],
+    children:node.children.map(c=>deepCloneNodeChild(c,lvl+1))
+  };
+  return cloned;
+}
+function deepCloneNodeChild(node,lvl){
+  return {
+    id:uid(),
+    label:node.label,
+    level:lvl,
+    open:true,
+    docs:[],
+    children:node.children.map(c=>deepCloneNodeChild(c,lvl+1))
+  };
+}
+
+function copyNode(nodeId){
+  const node=findN(tobeTree,nodeId);
+  if(!node)return;
+  clipboardNode=JSON.parse(JSON.stringify(node));
+  toast(`"${node.label}" 복사됨 — 같은 레벨 폴더의 📋 붙여넣기 버튼으로 붙여넣으세요`,'info');
+  // 붙여넣기 버튼 활성화 표시를 위해 재렌더
+  renderTobeTree();
+}
+
+function pasteNode(siblingId){
+  if(!clipboardNode){toast('먼저 복사할 폴더를 선택하세요','warn');return;}
+  // siblingId의 부모를 찾아서 같은 레벨에 붙여넣기
+  saveUndoState();
+  const cloned=deepCloneNode(clipboardNode);
+  cloned.label=clipboardNode.label+' (복사)';
+  // 최상위 레벨인지 확인
+  const topIdx=tobeTree.findIndex(n=>n.id===siblingId);
+  if(topIdx!==-1){
+    tobeTree.splice(topIdx+1,0,cloned);
+  } else {
+    // 부모 찾기
+    function insertAfter(nodes){
+      for(let i=0;i<nodes.length;i++){
+        if(nodes[i].id===siblingId){nodes.splice(i+1,0,cloned);return true;}
+        if(insertAfter(nodes[i].children))return true;
+      }
+      return false;
+    }
+    insertAfter(tobeTree);
+  }
+  renderTobeTree();updateStats();
+  toast(`"${cloned.label}" 붙여넣기 완료 — 폴더명을 수정하세요`,'success');
+  document.getElementById('tobeES').style.display='none';
+}
+
 function findN(nodes,id){for(const n of nodes){if(n.id===id)return n;const f=findN(n.children,id);if(f)return f;}return null;}
 
 function delTN(id){
@@ -691,6 +751,13 @@ function bldTN(node){
   const dc=cntDocs(node);const badge=document.createElement('span');if(dc>0){badge.className='dcb-badge';badge.textContent=dc+'개';}
   const acts=document.createElement('div');acts.className='tbacts';
   if(node.level<3){const ab=document.createElement('button');ab.className='btn btn-ghost btn-sm btn-icon';ab.title='하위 추가';ab.textContent='+';ab.addEventListener('click',e=>{e.stopPropagation();addTobeChild(node.id,node.level);});acts.appendChild(ab);}
+  // 복사 버튼
+  const cpb=document.createElement('button');cpb.className='btn btn-ghost btn-sm btn-icon';cpb.title='이 폴더 복사 (구조만, 문서 제외)';cpb.textContent='📋';
+  cpb.addEventListener('click',e=>{e.stopPropagation();copyNode(node.id);});acts.appendChild(cpb);
+  // 붙여넣기 버튼 (클립보드에 내용 있을 때만 활성)
+  const ppb=document.createElement('button');ppb.className='btn btn-ghost btn-sm btn-icon';ppb.title='복사한 폴더를 바로 아래에 붙여넣기';
+  ppb.textContent='📌';ppb.style.opacity=clipboardNode?'1':'0.3';ppb.style.cursor=clipboardNode?'pointer':'default';
+  ppb.addEventListener('click',e=>{e.stopPropagation();if(clipboardNode)pasteNode(node.id);else toast('먼저 복사할 폴더를 선택하세요','warn');});acts.appendChild(ppb);
   const db=document.createElement('button');db.className='btn btn-ghost btn-sm btn-icon';db.title='삭제';db.style.color='var(--accent-red)';db.textContent='x';db.addEventListener('click',e=>{e.stopPropagation();delTN(node.id);});acts.appendChild(db);
   item.appendChild(tog);item.appendChild(ico);item.appendChild(inp);item.appendChild(badge);item.appendChild(acts);
   if(canDrop){
