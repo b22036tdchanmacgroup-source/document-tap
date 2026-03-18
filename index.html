@@ -336,9 +336,9 @@ body{font-family:'IBM Plex Sans KR',sans-serif;background:var(--bg-base);color:v
 
 <!-- MOVE MODAL -->
 <div class="mo" id="moveModal">
-  <div class="modal" style="width:480px">
+  <div class="modal" style="width:720px;max-width:96vw">
     <div class="mh"><span>✈</span><span class="mt">이관 대상 선택</span><button class="mc" onclick="closeModal('moveModal')">✕</button></div>
-    <div class="mb" id="moveMB"></div>
+    <div class="mb" id="moveMB" style="padding:0;height:420px;max-height:60vh;overflow:hidden;"></div>
     <div class="mf">
       <button class="btn btn-ghost" onclick="closeModal('moveModal')">취소</button>
       <button class="btn btn-success" onclick="confirmMove()">✓ 이관 확정</button>
@@ -459,6 +459,7 @@ function processData(rows){
 
 function buildAsIsTree(){
   asIsTreeData={};allDocs=[];docIdC=1;
+  const idCountMap={};
   asIsData.forEach(row=>{
     const c=row.confirm||'(미분류)',p1=row.path1||'',p2=row.path2||'',p3=row.path3||'',p4=row.path4||'',p5=row.path5||'';
     if(!asIsTreeData[c])asIsTreeData[c]={};
@@ -467,7 +468,11 @@ function buildAsIsTree(){
     if(!asIsTreeData[c][p1][p2][p3])asIsTreeData[c][p1][p2][p3]=[];
     if(p4){
       const name=p5?`${p4} (${p5})`:p4;
-      const d={id:did(),name,rawName:p4,version:p5,path:[c,p1,p2,p3,p4].filter(Boolean).join(' > '),confirm:c,tab:p1,cat:p2,sub:p3,mapped:false,tobeNodeId:null};
+      // 요청2: 경로 기반 유니크 ID — 같은 이름이라도 다른 폴더면 다른 문서
+      const pathKey=[c,p1,p2,p3,p4,p5].join('||');
+      idCountMap[pathKey]=(idCountMap[pathKey]||0)+1;
+      const uniqueId='d_'+pathKey.replace(/[^a-zA-Z0-9가-힣]/g,'_')+'_'+idCountMap[pathKey];
+      const d={id:uniqueId,name,rawName:p4,version:p5,path:[c,p1,p2,p3,p4].filter(Boolean).join(' > '),confirm:c,tab:p1,cat:p2,sub:p3,mapped:false,tobeNodeId:null};
       asIsTreeData[c][p1][p2][p3].push(d);allDocs.push(d);
     }
   });
@@ -509,17 +514,21 @@ function renderAsIsTree(){
   const con=document.getElementById('asIsTreeEl');con.innerHTML='';
   if(!Object.keys(asIsTreeData).length){con.innerHTML='<div class="es"><div class="ei">📂</div><div class="et">데이터 없음</div></div>';return;}
   Object.entries(asIsTreeData).forEach(([c,tabs])=>{
-    const tot=Object.values(tabs).flatMap(t=>Object.values(t)).flatMap(x=>Object.values(x)).flat().length;
-    const {el,ch}=mkTN(c,0,tot,true);
+    const allDocsInC=Object.values(tabs).flatMap(t=>Object.values(t)).flatMap(x=>Object.values(x)).flat();
+    const tot=allDocsInC.length,mappedC=allDocsInC.filter(d=>d.mapped).length;
+    const {el,ch}=mkTN(c,0,tot,true,mappedC);
     Object.entries(tabs).forEach(([p1,cats])=>{
-      const cnt=Object.values(cats).flatMap(x=>Object.values(x)).flat().length;
-      const {el:e1,ch:c1}=mkTN(p1||'(탭 없음)',1,cnt,true);
+      const allDocsInP1=Object.values(cats).flatMap(x=>Object.values(x)).flat();
+      const cnt=allDocsInP1.length,mappedP1=allDocsInP1.filter(d=>d.mapped).length;
+      const {el:e1,ch:c1}=mkTN(p1||'(탭 없음)',1,cnt,true,mappedP1);
       Object.entries(cats).forEach(([p2,subs])=>{
-        const cnt2=Object.values(subs).flat().length;
-        const {el:e2,ch:c2}=mkTN(p2||'(카테고리 없음)',2,cnt2,false);
+        const allDocsInP2=Object.values(subs).flat();
+        const cnt2=allDocsInP2.length,mappedP2=allDocsInP2.filter(d=>d.mapped).length;
+        const {el:e2,ch:c2}=mkTN(p2||'(카테고리 없음)',2,cnt2,false,mappedP2);
         Object.entries(subs).forEach(([p3,docs])=>{
           if(!docs.length)return;
-          const {el:e3,ch:c3}=mkTN(p3||'(서브카테고리 없음)',3,docs.length,false);
+          const mappedP3=docs.filter(d=>d.mapped).length;
+          const {el:e3,ch:c3}=mkTN(p3||'(서브카테고리 없음)',3,docs.length,false,mappedP3);
           docs.forEach(d=>c3.appendChild(mkDI(d)));c2.appendChild(e3);
         });c1.appendChild(e2);
       });el.firstElementChild.nextElementSibling&&null;ch.appendChild(e1);
@@ -527,13 +536,22 @@ function renderAsIsTree(){
   });
 }
 
-function mkTN(label,level,count,open){
+function mkTN(label,level,count,open,mappedCount){
   const el=document.createElement('div');el.className=`tnode lv${level}`;
   const item=document.createElement('div');item.className='ti';
   const tog=document.createElement('div');tog.className=`ttog${open?' open':''}`;tog.textContent=open?'−':'+';
   const ico=document.createElement('span');ico.className='fi';ico.innerHTML=fsvg(level,level===0?18:level===1?16:level===2?14:12);
   const lbl=document.createElement('span');lbl.className='tlbl';lbl.textContent=label||'—';
-  const badge=document.createElement('span');badge.className='dcb-badge';badge.textContent=count;
+  // 뱃지: 이관된 수 / 전체 수
+  const badge=document.createElement('span');
+  if(mappedCount!==undefined&&count>0){
+    const remain=count-mappedCount;
+    badge.className='dcb-badge';
+    badge.innerHTML=`<span style="color:var(--accent-green)">${mappedCount}</span><span style="color:var(--text-muted)">/${count}</span>`;
+    badge.title=`이관완료 ${mappedCount} / 전체 ${count} (미이관 ${remain})`;
+  } else {
+    badge.className='dcb-badge';badge.textContent=count;
+  }
   item.appendChild(tog);item.appendChild(ico);item.appendChild(lbl);item.appendChild(badge);
   const ch=document.createElement('div');ch.className=`tch${open?' open':''}`;
   tog.addEventListener('click',e=>{e.stopPropagation();const o=ch.classList.contains('open');ch.classList.toggle('open',!o);tog.classList.toggle('open',!o);tog.textContent=o?'+':'−';});
@@ -547,7 +565,18 @@ function mkDI(doc){
   const ico=document.createElement('span');ico.className='fi';ico.innerHTML=fsvg(4,11);
   const name=document.createElement('span');name.className='dn';name.title=doc.path;name.textContent=doc.name;
   const stat=document.createElement('span');stat.className=`ds ${doc.mapped?'sm':'sp'}`;stat.textContent=doc.mapped?'이관됨':'대기';
-  el.appendChild(drag);el.appendChild(cb);el.appendChild(ico);el.appendChild(name);el.appendChild(stat);
+  // 요청3: 이관된 문서에 되돌리기 버튼
+  const revertBtn=document.createElement('button');
+  revertBtn.className='btn btn-ghost btn-sm btn-icon';
+  revertBtn.title='이관 되돌리기';revertBtn.textContent='↩';
+  revertBtn.style.cssText=`display:${doc.mapped?'inline-flex':'none'};font-size:10px;padding:1px 4px;color:var(--accent-orange);border-color:rgba(245,158,11,0.3);`;
+  revertBtn.addEventListener('click',e=>{
+    e.stopPropagation();
+    saveUndoState();
+    unMapDoc(doc.id,doc.tobeNodeId);
+    toast(`"${doc.name}" 이관 되돌림`,'info');
+  });
+  el.appendChild(drag);el.appendChild(cb);el.appendChild(ico);el.appendChild(name);el.appendChild(stat);el.appendChild(revertBtn);
 
   // 공통 토글 함수 (shift 범위선택 포함)
   function toggleDoc(e){
@@ -987,7 +1016,11 @@ function applyAsIsOpenState(state){
 // mapDoc: batch=true면 렌더링 생략
 function mapDoc(docId,nodeId,batch=false){
   const doc=allDocs.find(d=>d.id===docId),node=findN(tobeTree,nodeId);if(!doc||!node)return;
-  if(doc.tobeNodeId){const p=findN(tobeTree,doc.tobeNodeId);if(p)p.docs=p.docs.filter(id=>id!==docId);}
+  // 요청3: 이미 이관된 문서 중복 방지
+  if(doc.mapped&&doc.tobeNodeId){
+    if(!batch)toast(`"${doc.name}"은 이미 이관된 문서입니다. 되돌리기 후 재이관하세요`,'warn');
+    return;
+  }
   doc.mapped=true;doc.tobeNodeId=nodeId;if(!node.docs.includes(docId))node.docs.push(docId);
   if(!doc.tobeLabel)doc.tobeLabel=doc.name; // 처음 이관 시 tobeLabel 초기화
   if(!batch){
@@ -1005,8 +1038,8 @@ function finalizeMapDoc(){
   renderTobeTree();
   const st=getAsIsOpenState();renderAsIsTree();applyAsIsOpenState(st);
   updateProgress();updateStats();
-  const cnt=draggedDocs.length>1?draggedDocs.length:1;
-  toast(`${cnt}개 문서 이관 완료`,'success');
+  const cnt=draggedDocs.filter(id=>{const d=allDocs.find(x=>x.id===id);return d&&d.mapped;}).length||1;
+  if(cnt>0)toast(`${cnt}개 문서 이관 완료`,'success');
   draggedDocs=[];draggedDoc=null;
   // 이관 완료 후 선택 해제
   checkedDocs.clear();lastCheckedDocId=null;updMoveBtn();
@@ -1024,14 +1057,56 @@ function getPath(nodeId){const p=[];function s(ns,id,path){for(const n of ns){co
 // MOVE CHECKED
 function moveCheckedDocs(){
   if(!checkedDocs.size)return;if(!tobeTree.length){toast('To-Be 체계를 먼저 생성해주세요','warn');return;}
+  // 이미 이관된 문서 필터링
+  const alreadyMapped=[...checkedDocs].filter(id=>{const d=allDocs.find(x=>x.id===id);return d&&d.mapped;});
+  const toMap=[...checkedDocs].filter(id=>{const d=allDocs.find(x=>x.id===id);return d&&!d.mapped;});
+  if(alreadyMapped.length>0&&toMap.length===0){
+    toast(`선택한 ${alreadyMapped.length}개 문서는 모두 이미 이관됐습니다. 되돌리기(↩) 후 재이관하세요`,'warn');return;
+  }
   const body=document.getElementById('moveMB');
-  body.innerHTML=`<div style="margin-bottom:9px;font-size:11px;color:var(--text-secondary)"><strong style="color:var(--text-primary)">${checkedDocs.size}개 문서</strong>를 이관할 폴더를 선택하세요</div><div id="moveList" style="display:flex;flex-direction:column;gap:3px;max-height:320px;overflow-y:auto"></div>`;
+  // 2단 레이아웃: 왼쪽=선택문서 미리보기, 오른쪽=폴더 목록
+  body.style.padding='0';body.style.display='flex';body.style.flexDirection='column';body.style.gap='0';
+  let previewHtml='';
+  [...checkedDocs].forEach(id=>{
+    const d=allDocs.find(x=>x.id===id);if(!d)return;
+    const isAlready=d.mapped;
+    previewHtml+=`<div style="display:flex;align-items:center;gap:6px;padding:4px 8px;border-radius:3px;background:var(--bg-card);margin-bottom:3px;font-size:11px;">
+      ${fsvg(4,11)}
+      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:${isAlready?'var(--text-muted)':'var(--text-primary)'};">${d.name}</span>
+      ${isAlready?'<span style="font-size:9px;padding:1px 5px;border-radius:3px;background:rgba(245,158,11,0.15);color:var(--accent-orange);flex-shrink:0;">이미이관됨</span>':'<span style="font-size:9px;padding:1px 5px;border-radius:3px;background:rgba(16,185,129,0.15);color:var(--accent-green);flex-shrink:0;">이관예정</span>'}
+    </div>`;
+  });
+  body.innerHTML=`
+  <div style="display:flex;gap:0;height:100%;">
+    <!-- 왼쪽: 선택문서 목록 -->
+    <div style="width:240px;flex-shrink:0;border-right:1px solid var(--border);display:flex;flex-direction:column;">
+      <div style="padding:10px 12px;border-bottom:1px solid var(--border);background:var(--bg-card);">
+        <span style="font-size:11px;font-weight:600;color:var(--text-primary)">${checkedDocs.size}개 선택</span>
+        ${alreadyMapped.length>0?`<span style="font-size:10px;color:var(--accent-orange);margin-left:6px">(${alreadyMapped.length}개 이미이관)</span>`:''}
+      </div>
+      <div style="overflow-y:auto;flex:1;padding:8px;">${previewHtml}</div>
+    </div>
+    <!-- 오른쪽: 폴더 선택 -->
+    <div style="flex:1;display:flex;flex-direction:column;min-width:0;">
+      <div style="padding:10px 12px;border-bottom:1px solid var(--border);background:var(--bg-card);">
+        <span style="font-size:11px;font-weight:600;color:var(--text-primary)">이관할 폴더 선택</span>
+        <span style="font-size:10px;color:var(--text-muted);margin-left:6px">(이관예정 ${toMap.length}개만 이관됩니다)</span>
+      </div>
+      <div id="moveList" style="overflow-y:auto;flex:1;padding:8px;display:flex;flex-direction:column;gap:3px;"></div>
+    </div>
+  </div>`;
   const list=body.querySelector('#moveList');moveTarget=null;
   function addOpts(nodes,depth=0){
     nodes.forEach(n=>{
-      const opt=document.createElement('div');opt.style.cssText=`padding:6px 9px;padding-left:${9+depth*14}px;border-radius:3px;cursor:pointer;font-size:11px;border:1px solid var(--border);background:var(--bg-card);display:flex;align-items:center;gap:6px;transition:all 0.1s;`;
-      opt.innerHTML=`${fsvg(n.level,14)}<span style="flex:1">${n.label}</span><span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--text-muted)">${getPath(n.id)}</span>`;
-      opt.addEventListener('click',()=>{list.querySelectorAll('div').forEach(d=>{d.style.background='var(--bg-card)';d.style.borderColor='var(--border)';});opt.style.background='rgba(37,99,235,0.15)';opt.style.borderColor='var(--accent-blue)';moveTarget=n.id;});
+      const opt=document.createElement('div');
+      opt.style.cssText=`padding:7px 10px;padding-left:${10+depth*14}px;border-radius:4px;cursor:pointer;border:1px solid var(--border);background:var(--bg-card);display:flex;align-items:center;gap:8px;transition:all 0.1s;min-height:36px;`;
+      const pathStr=getPath(n.id);
+      opt.innerHTML=`${fsvg(n.level,14)}<span style="flex:1;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${n.label}</span><span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px;flex-shrink:0;" title="${pathStr}">${pathStr}</span>`;
+      opt.addEventListener('click',()=>{
+        list.querySelectorAll('div').forEach(d=>{d.style.background='var(--bg-card)';d.style.borderColor='var(--border)';});
+        opt.style.background='rgba(37,99,235,0.15)';opt.style.borderColor='var(--accent-blue)';
+        moveTarget=n.id;
+      });
       opt.addEventListener('mouseenter',()=>{if(moveTarget!==n.id)opt.style.background='var(--bg-hover)';});
       opt.addEventListener('mouseleave',()=>{if(moveTarget!==n.id)opt.style.background='var(--bg-card)';});
       list.appendChild(opt);addOpts(n.children,depth+1);
