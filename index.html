@@ -257,6 +257,7 @@ body{font-family:'IBM Plex Sans KR',sans-serif;background:var(--bg-base);color:v
       <div class="sb"><span style="font-size:10px;color:var(--text-muted)">🔍</span><input type="text" placeholder="문서 검색..." oninput="filterTree(this.value)"></div>
       <button class="btn btn-ghost btn-sm btn-icon" onclick="expandAll()" title="펼치기">＋</button>
       <button class="btn btn-ghost btn-sm btn-icon" onclick="collapseAll()" title="접기">－</button>
+      <button class="btn btn-ghost btn-sm" onclick="clearAllChecked()" id="clearChkBtn" style="display:none" title="전체 선택해제">☐ 선택해제</button>
       <button class="btn btn-primary btn-sm" onclick="moveCheckedDocs()" id="moveBtn" style="display:none">✈ 선택 이관</button>
     </div>
     <div class="pb" id="asIsTreeEl"></div>
@@ -555,7 +556,20 @@ function mkDI(doc){
   return el;
 }
 
-function updMoveBtn(){const btn=document.getElementById('moveBtn');btn.style.display=checkedDocs.size>0?'inline-flex':'none';btn.textContent=`✈ 선택 이관 (${checkedDocs.size})`;}
+function updMoveBtn(){
+  const btn=document.getElementById('moveBtn');
+  btn.style.display=checkedDocs.size>0?'inline-flex':'none';
+  btn.textContent=`✈ 선택 이관 (${checkedDocs.size})`;
+  const clr=document.getElementById('clearChkBtn');
+  if(clr)clr.style.display=checkedDocs.size>0?'inline-flex':'none';
+}
+function clearAllChecked(){
+  checkedDocs.clear();
+  // 체크박스 UI도 모두 해제
+  document.querySelectorAll('#asIsTreeEl .dcb').forEach(cb=>cb.checked=false);
+  updMoveBtn();
+  toast('선택 해제 완료','info');
+}
 function expandAll(){document.querySelectorAll('#asIsTreeEl .tch').forEach(e=>e.classList.add('open'));document.querySelectorAll('#asIsTreeEl .ttog').forEach(t=>{t.classList.add('open');t.textContent='−';});}
 function collapseAll(){document.querySelectorAll('#asIsTreeEl .tch').forEach(e=>e.classList.remove('open'));document.querySelectorAll('#asIsTreeEl .ttog').forEach(t=>{t.classList.remove('open');t.textContent='+';});}
 function filterTree(q){
@@ -932,6 +946,8 @@ function mapDoc(docId,nodeId,batch=false){
     const st=getAsIsOpenState();renderAsIsTree();applyAsIsOpenState(st);
     updateProgress();updateStats();
     toast(`"${doc.name}" → ${getPath(nodeId)}`,'success');
+    // 이관 완료 후 선택 해제
+    checkedDocs.clear();updMoveBtn();
   }
 }
 
@@ -943,6 +959,8 @@ function finalizeMapDoc(){
   const cnt=draggedDocs.length>1?draggedDocs.length:1;
   toast(`${cnt}개 문서 이관 완료`,'success');
   draggedDocs=[];draggedDoc=null;
+  // 이관 완료 후 선택 해제
+  checkedDocs.clear();updMoveBtn();
 }
 
 function unMapDoc(docId,nodeId){
