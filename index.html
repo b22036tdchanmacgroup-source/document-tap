@@ -346,6 +346,17 @@ body{font-family:'IBM Plex Sans KR',sans-serif;background:var(--bg-base);color:v
   </div>
 </div>
 
+<!-- SLOT PICK MODAL -->
+<div class="mo" id="slotPickModal">
+  <div class="modal" style="width:360px">
+    <div class="mh"><span>💾</span><span class="mt">슬롯 선택</span><button class="mc" onclick="closeModal('slotPickModal')">✕</button></div>
+    <div class="mb" style="padding:14px" id="slotPickBody"></div>
+    <div class="mf">
+      <button class="btn btn-ghost" onclick="closeModal('slotPickModal')">취소</button>
+    </div>
+  </div>
+</div>
+
 <!-- SLOT NAME MODAL -->
 <div class="mo" id="slotNameModal">
   <div class="modal" style="width:340px">
@@ -370,6 +381,7 @@ let draggedDoc=null,draggedDocs=[],moveTarget=null,nodeIdC=1,docIdC=1,impOpen=fa
 let activeSlot=null,savedSlots=[null,null,null,null,null],pendingSlotIdx=null;
 let undoStack=[];
 let clipboardNode=null; // 복사된 노드 저장
+let lastCheckedDocId=null; // shift 선택용 마지막 체크 doc id
 
 // FOLDER SVGs — visually distinct per depth
 function fsvg(level,sz=16){
@@ -532,14 +544,55 @@ function mkDI(doc){
   const el=document.createElement('div');el.className=`doci${doc.mapped?' mapped':''}`;el.dataset.docId=doc.id;el.draggable=true;
   const drag=document.createElement('span');drag.className='ddh';drag.title='드래그하여 이관';drag.textContent='⠿';
   const cb=document.createElement('input');cb.type='checkbox';cb.className='dcb';cb.checked=checkedDocs.has(doc.id);
-  cb.addEventListener('change',e=>{e.stopPropagation();if(cb.checked)checkedDocs.add(doc.id);else checkedDocs.delete(doc.id);updMoveBtn();});
   const ico=document.createElement('span');ico.className='fi';ico.innerHTML=fsvg(4,11);
   const name=document.createElement('span');name.className='dn';name.title=doc.path;name.textContent=doc.name;
   const stat=document.createElement('span');stat.className=`ds ${doc.mapped?'sm':'sp'}`;stat.textContent=doc.mapped?'이관됨':'대기';
   el.appendChild(drag);el.appendChild(cb);el.appendChild(ico);el.appendChild(name);el.appendChild(stat);
+
+  // 공통 토글 함수 (shift 범위선택 포함)
+  function toggleDoc(e){
+    if(e.shiftKey&&lastCheckedDocId&&lastCheckedDocId!==doc.id){
+      // 현재 DOM에 보이는 .doci 순서 기준으로 범위 선택
+      const allItems=[...document.querySelectorAll('#asIsTreeEl .doci')];
+      const ids=allItems.map(el=>el.dataset.docId);
+      const fromIdx=ids.indexOf(lastCheckedDocId);
+      const toIdx=ids.indexOf(doc.id);
+      if(fromIdx!==-1&&toIdx!==-1){
+        const lo=Math.min(fromIdx,toIdx),hi=Math.max(fromIdx,toIdx);
+        for(let i=lo;i<=hi;i++){
+          const tid=ids[i];
+          checkedDocs.add(tid);
+          // 해당 체크박스 UI도 갱신
+          const tEl=allItems[i];
+          if(tEl){const tcb=tEl.querySelector('.dcb');if(tcb)tcb.checked=true;}
+        }
+        cb.checked=true;
+      }
+    } else {
+      cb.checked=!cb.checked;
+      if(cb.checked)checkedDocs.add(doc.id);else checkedDocs.delete(doc.id);
+    }
+    lastCheckedDocId=doc.id;
+    updMoveBtn();
+  }
+
+  // 체크박스 직접 클릭
+  cb.addEventListener('click',e=>{
+    e.stopPropagation();
+    // change 이벤트 대신 click에서 처리 (shift 지원)
+    // checkbox의 checked는 click 시점에 이미 바뀌어 있음 → 되돌리고 toggleDoc에서 처리
+    cb.checked=!cb.checked; // 원복
+    toggleDoc(e);
+  });
+
+  // 문서명(span) 또는 row 클릭 → drag 핸들 제외
+  el.addEventListener('click',e=>{
+    if(e.target===drag||e.target===cb)return;
+    toggleDoc(e);
+  });
+
   el.addEventListener('dragstart',e=>{
     draggedDoc=doc;
-    // 체크된 문서가 있고 이 문서도 체크된 경우 → 모두 드래그
     if(checkedDocs.size>0&&checkedDocs.has(doc.id)){
       draggedDocs=[...checkedDocs];
     } else {
@@ -548,11 +601,6 @@ function mkDI(doc){
     el.classList.add('dragging');e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',doc.id);
   });
   el.addEventListener('dragend',()=>{el.classList.remove('dragging');});
-  el.addEventListener('click',e=>{
-    if(e.target===drag)return;
-    // 문서명 클릭 또는 체크박스 클릭 모두 선택 토글
-    cb.checked=!cb.checked;if(cb.checked)checkedDocs.add(doc.id);else checkedDocs.delete(doc.id);updMoveBtn();
-  });
   return el;
 }
 
@@ -565,6 +613,7 @@ function updMoveBtn(){
 }
 function clearAllChecked(){
   checkedDocs.clear();
+  lastCheckedDocId=null;
   // 체크박스 UI도 모두 해제
   document.querySelectorAll('#asIsTreeEl .dcb').forEach(cb=>cb.checked=false);
   updMoveBtn();
@@ -947,7 +996,7 @@ function mapDoc(docId,nodeId,batch=false){
     updateProgress();updateStats();
     toast(`"${doc.name}" → ${getPath(nodeId)}`,'success');
     // 이관 완료 후 선택 해제
-    checkedDocs.clear();updMoveBtn();
+    checkedDocs.clear();lastCheckedDocId=null;updMoveBtn();
   }
 }
 
@@ -960,7 +1009,7 @@ function finalizeMapDoc(){
   toast(`${cnt}개 문서 이관 완료`,'success');
   draggedDocs=[];draggedDoc=null;
   // 이관 완료 후 선택 해제
-  checkedDocs.clear();updMoveBtn();
+  checkedDocs.clear();lastCheckedDocId=null;updMoveBtn();
 }
 
 function unMapDoc(docId,nodeId){
@@ -996,7 +1045,7 @@ function confirmMove(){
   saveUndoState();
   let count=0;checkedDocs.forEach(did=>{mapDoc(did,moveTarget,true);count++;});
   const st=getAsIsOpenState();renderTobeTree();renderAsIsTree();applyAsIsOpenState(st);updateProgress();updateStats();
-  checkedDocs.clear();updMoveBtn();closeModal('moveModal');toast(`${count}개 문서 이관 완료`,'success');
+  checkedDocs.clear();lastCheckedDocId=null;updMoveBtn();closeModal('moveModal');toast(`${count}개 문서 이관 완료`,'success');
 }
 
 // ═══════════════════════════════════════════════
@@ -1052,10 +1101,28 @@ function renderSlots(){
 
 function saveToSlot(){
   if(!tobeTree.length){toast('저장할 체계가 없습니다','warn');return;}
-  pendingSlotIdx=activeSlot===null?savedSlots.findIndex(s=>!s):activeSlot;
-  if(pendingSlotIdx===-1)pendingSlotIdx=0;
-  document.getElementById('slotNameInput').value=savedSlots[pendingSlotIdx]?.name||'';
-  openModal('slotNameModal');
+  // 슬롯 선택 UI 표시
+  openSlotPickModal();
+}
+
+function openSlotPickModal(){
+  const body=document.getElementById('slotPickBody');
+  body.innerHTML='<p style="font-size:11px;color:var(--text-secondary);margin-bottom:10px">저장할 슬롯을 선택하세요</p>';
+  savedSlots.forEach((slot,i)=>{
+    const row=document.createElement('div');
+    row.style.cssText='display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:4px;border:1px solid var(--border);background:var(--bg-card);cursor:pointer;margin-bottom:5px;transition:all 0.1s;';
+    row.innerHTML=`<span style="font-family:'Bebas Neue',cursive;font-size:18px;color:${slot?'var(--accent-green)':'var(--text-muted)'}">${i+1}</span><span style="flex:1;font-size:11px">${slot?slot.name:'비어있음'}</span>${slot?'<span style="font-size:9px;color:var(--text-muted)">덮어쓰기</span>':'<span style="font-size:9px;color:var(--accent-cyan)">새로 저장</span>'}`;
+    row.addEventListener('mouseenter',()=>row.style.background='var(--bg-hover)');
+    row.addEventListener('mouseleave',()=>row.style.background='var(--bg-card)');
+    row.addEventListener('click',()=>{
+      pendingSlotIdx=i;
+      closeModal('slotPickModal');
+      document.getElementById('slotNameInput').value=slot?.name||`체계 ${i+1}`;
+      openModal('slotNameModal');
+    });
+    body.appendChild(row);
+  });
+  openModal('slotPickModal');
 }
 
 function confirmSlotSave(){
