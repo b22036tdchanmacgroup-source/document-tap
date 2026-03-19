@@ -109,9 +109,7 @@ body{font-family:'IBM Plex Sans KR',sans-serif;background:var(--bg-base);color:v
 .pb::-webkit-scrollbar{width:3px;}.pb::-webkit-scrollbar-thumb{background:var(--border-bright);border-radius:2px;}
 .divider{background:#e5dfd6;border-left:1px solid #c8bdb0;border-right:1px solid #c8bdb0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;cursor:col-resize;user-select:none;transition:background 0.15s;}
 .divider:hover,.divider.resizing{background:#d8cfc4;border-color:#bd5429;}
-/* TOBE DOC RENAME */
-.tbdc-name{background:transparent;border:none;outline:none;color:#3a5049;font-family:'IBM Plex Sans KR',sans-serif;font-size:10px;min-width:30px;max-width:180px;cursor:text;}
-.tbdc-name:focus{background:#e8f0ee;border-radius:2px;padding:0 2px;color:var(--text-primary);}
+/* TOBE DOC RENAME - handled above in tbdc block */
 /* TOBE SEARCH */
 .tobe-search-bar{padding:5px 9px;border-bottom:1px solid var(--border);background:var(--bg-base);flex-shrink:0;display:flex;gap:5px;align-items:center;}
 .tobe-search-highlight{background:rgba(189,84,41,0.25);border-radius:2px;}
@@ -173,9 +171,11 @@ body{font-family:'IBM Plex Sans KR',sans-serif;background:var(--bg-base);color:v
 .tbli:focus{background:#e8f0ee;border-radius:2px;padding:0 3px;}
 .tbacts{display:flex;gap:2px;margin-left:auto;flex-shrink:0;}
 .tbch{padding-left:16px;display:none;}.tbch.open{display:block;}
-.tbdl{padding:3px 5px;display:flex;flex-wrap:wrap;gap:2px;}
-.tbdc{display:inline-flex;align-items:center;gap:2px;background:rgba(73,98,89,0.1);border:1px solid rgba(73,98,89,0.28);border-radius:3px;padding:1px 5px;font-size:10px;color:#3a5049;}
-.tbdc .rmd{cursor:pointer;color:var(--text-muted);font-size:10px;}.tbdc .rmd:hover{color:var(--accent-red);}
+.tbdl{padding:4px 6px;display:flex;flex-direction:column;gap:0;}
+.tbdc{display:flex;align-items:center;gap:4px;background:rgba(73,98,89,0.07);border:1px solid rgba(73,98,89,0.22);border-radius:4px;padding:4px 7px;font-size:11px;color:#3a5049;width:100%;box-sizing:border-box;margin-bottom:2px;}
+.tbdc .rmd{cursor:pointer;color:var(--text-muted);font-size:11px;flex-shrink:0;padding:0 2px;}.tbdc .rmd:hover{color:var(--accent-red);}
+.tbdc-name{background:transparent;border:none;outline:none;color:#2a3d38;font-family:'IBM Plex Sans KR',sans-serif;font-size:11px;flex:1;min-width:0;cursor:text;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.tbdc-name:focus{background:rgba(73,98,89,0.12);border-radius:2px;padding:0 3px;white-space:normal;}
 .tbdz{min-height:26px;border:1px dashed var(--border);border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--text-muted);margin:2px 0;transition:all 0.15s;}
 .tbdz.over{border-color:#496259;background:rgba(73,98,89,0.06);color:#496259;}
 .tbl0 .tbi{border-left:3px solid #bd5429;}.tbl0 .tbli{color:#a0471f;font-weight:600;}
@@ -385,6 +385,7 @@ body{font-family:'IBM Plex Sans KR',sans-serif;background:var(--bg-base);color:v
     <button class="btn btn-ghost btn-sm" onclick="loadTobeTemplate()">템플릿</button>
     <button class="btn btn-ghost btn-sm" onclick="collapseAllTobe()">－</button>
     <button class="btn btn-ghost btn-sm" onclick="expandAllTobe()">＋</button>
+    <button class="btn btn-sm" onclick="openTobeOutline()" title="이관 체계를 AS-IS처럼 세로형 트리로 보기" style="background:rgba(73,98,89,0.15);color:#3a5049;border:1px solid rgba(73,98,89,0.35);">🗂 체계 보기</button>
     <div style="margin-left:auto" class="chip chip-green" id="tobeProgress">0% 이관</div>
   </div>
   <div class="tobe-search-bar" id="tobeSearchBar">
@@ -459,6 +460,26 @@ body{font-family:'IBM Plex Sans KR',sans-serif;background:var(--bg-base);color:v
     <div class="mf">
       <button class="btn btn-ghost" onclick="closeModal('slotNameModal')">취소</button>
       <button class="btn btn-success" onclick="confirmSlotSave()">💾 저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOBE OUTLINE MODAL (세로형 체계 보기) -->
+<div class="mo" id="tobeOutlineModal">
+  <div class="modal" style="width:900px;max-width:97vw;max-height:92vh;">
+    <div class="mh" style="background:var(--card-r);border-bottom:1px solid var(--border-r);">
+      <span>🗂</span>
+      <span class="mt">이관 문서체계 — 전체 구조 보기</span>
+      <div style="margin-left:auto;display:flex;gap:6px;align-items:center">
+        <button class="btn btn-ghost btn-sm" onclick="tobeOutlineExpandAll()">＋ 전체 펼치기</button>
+        <button class="btn btn-ghost btn-sm" onclick="tobeOutlineCollapseAll()">－ 전체 접기</button>
+        <button class="mc" onclick="closeModal('tobeOutlineModal')">✕</button>
+      </div>
+    </div>
+    <div class="mb" id="tobeOutlineBody" style="padding:10px;background:var(--panel-r);"></div>
+    <div class="mf" style="background:var(--card-r);border-top:1px solid var(--border-r);">
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text-muted)" id="tobeOutlineStats"></span>
+      <button class="btn btn-ghost" onclick="closeModal('tobeOutlineModal')">닫기</button>
     </div>
   </div>
 </div>
@@ -1025,17 +1046,16 @@ function bldTN(node){
       const dico=document.createElement('span');dico.className='fi';dico.innerHTML=fsvg(4,10);chip.appendChild(dico);
       // 문서명 인라인 편집
       const nameInp=document.createElement('input');nameInp.type='text';nameInp.className='tbdc-name';
-      nameInp.value=doc.tobeLabel||doc.name;nameInp.title='클릭하여 문서명 수정';
-      nameInp.size=Math.max(4,Math.min(24,(doc.tobeLabel||doc.name).length));
+      nameInp.value=doc.tobeLabel||doc.name;nameInp.title=(doc.tobeLabel||doc.name)+'\n클릭하여 문서명 수정';
       nameInp.addEventListener('click',e=>e.stopPropagation());
-      nameInp.addEventListener('focus',e=>{nameInp.size=Math.max(8,Math.min(32,(nameInp.value).length+4));});
+      nameInp.addEventListener('focus',e=>{nameInp.style.whiteSpace='normal';});
       nameInp.addEventListener('change',e=>{
         e.stopPropagation();
         doc.tobeLabel=nameInp.value.trim()||doc.name;
-        nameInp.size=Math.max(4,Math.min(24,doc.tobeLabel.length));
+        nameInp.title=doc.tobeLabel+'\n클릭하여 문서명 수정';
         toast('문서명 수정됨','info');
       });
-      nameInp.addEventListener('blur',e=>{nameInp.size=Math.max(4,Math.min(24,(nameInp.value).length));});
+      nameInp.addEventListener('blur',e=>{nameInp.style.whiteSpace='nowrap';});
       chip.appendChild(nameInp);
       const rm=document.createElement('span');rm.className='rmd';rm.textContent='x';rm.title='이관 취소';
       rm.addEventListener('click',()=>{saveUndoState();unMapDoc(did,node.id);});chip.appendChild(rm);dl.appendChild(chip);
@@ -1788,6 +1808,112 @@ document.addEventListener('DOMContentLoaded',()=>{
     });
   }
 });
+
+// ═══════════════════════════════════════════════
+// TOBE OUTLINE VIEW (세로형 체계 보기)
+// ═══════════════════════════════════════════════
+function openTobeOutline(){
+  if(!tobeTree.length){toast('To-Be 체계를 먼저 구성해주세요','warn');return;}
+  renderTobeOutline();
+  openModal('tobeOutlineModal');
+}
+
+function renderTobeOutline(){
+  const con=document.getElementById('tobeOutlineBody');con.innerHTML='';
+  let totalFolders=0,totalDocs=0;
+  function countAll(nodes){nodes.forEach(n=>{totalFolders++;totalDocs+=n.docs.length;countAll(n.children);});}
+  countAll(tobeTree);
+
+  tobeTree.forEach(n=>con.appendChild(buildOutlineNode(n,0)));
+
+  // stats
+  const mapped=allDocs.filter(d=>d.mapped).length;
+  document.getElementById('tobeOutlineStats').textContent=
+    `폴더 ${totalFolders}개 · 배치된 문서 ${totalDocs}개 · 미배치 ${allDocs.length-mapped}개`;
+}
+
+function buildOutlineNode(node,depth){
+  const dc=cntDocs(node);
+  const wrap=document.createElement('div');
+  wrap.style.cssText=`margin:1px 0;`;
+  wrap.dataset.outlineId=node.id;
+
+  // ── item row ──
+  const item=document.createElement('div');
+  const indent=depth*18;
+  const levelColors=['#bd5429','#496259','#7a5c8a','#9e9187'];
+  const borderColor=levelColors[Math.min(depth,3)];
+  item.style.cssText=`display:flex;align-items:center;gap:6px;padding:5px 10px;padding-left:${10+indent}px;border-radius:4px;cursor:pointer;user-select:none;transition:background 0.1s;border-left:3px solid ${borderColor};background:rgba(255,255,255,0.5);margin-bottom:1px;`;
+  item.addEventListener('mouseenter',()=>item.style.background='rgba(73,98,89,0.07)');
+  item.addEventListener('mouseleave',()=>item.style.background='rgba(255,255,255,0.5)');
+
+  // toggle
+  const hasChildren=node.children.length>0||node.docs.length>0;
+  const tog=document.createElement('span');
+  tog.style.cssText=`width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;border-radius:2px;font-size:10px;color:var(--text-muted);border:1px solid var(--border);background:var(--bg-card);flex-shrink:0;font-family:'IBM Plex Mono',monospace;`;
+  tog.textContent=hasChildren?(node._outlineOpen!==false?'−':'+'):' ';
+
+  const ico=document.createElement('span');ico.innerHTML=fsvg(Math.min(depth,3),depth===0?18:depth===1?16:14);
+
+  const lbl=document.createElement('span');
+  lbl.style.cssText=`font-size:${13-depth}px;font-weight:${depth===0?700:depth===1?600:depth===2?500:400};color:${depth===0?'#a0471f':depth===1?'#3a5049':depth===2?'#634d72':'var(--text-secondary)'};flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;`;
+  lbl.textContent=node.label;
+
+  // doc count badge
+  const badge=document.createElement('span');
+  badge.style.cssText=`font-family:'IBM Plex Mono',monospace;font-size:9px;padding:2px 5px;border-radius:8px;flex-shrink:0;background:${dc>0?'rgba(73,98,89,0.15)':'rgba(189,84,41,0.08)'};color:${dc>0?'#496259':'#a0471f'};border:1px solid ${dc>0?'rgba(73,98,89,0.25)':'rgba(189,84,41,0.2)'};`;
+  badge.textContent=dc>0?`${dc}개`:'비어있음';
+
+  item.appendChild(tog);item.appendChild(ico);item.appendChild(lbl);item.appendChild(badge);
+
+  // ── children container ──
+  const ch=document.createElement('div');
+  ch.style.cssText=`padding-left:0;display:${node._outlineOpen===false?'none':'block'};`;
+  ch.dataset.outlineCh=node.id;
+
+  // toggle click
+  if(hasChildren){
+    tog.style.cursor='pointer';
+    const toggleFn=()=>{
+      const open=ch.style.display!=='none';
+      ch.style.display=open?'none':'block';
+      tog.textContent=open?'+':'−';
+      node._outlineOpen=!open;
+    };
+    tog.addEventListener('click',e=>{e.stopPropagation();toggleFn();});
+    item.addEventListener('click',toggleFn);
+  }
+
+  // ── docs in this node ──
+  if(node.docs.length>0){
+    const dl=document.createElement('div');
+    dl.style.cssText=`padding:3px 0 3px ${indent+34}px;`;
+    node.docs.forEach(did=>{
+      const doc=allDocs.find(d=>d.id===did);if(!doc)return;
+      const dRow=document.createElement('div');
+      dRow.style.cssText=`display:flex;align-items:center;gap:6px;padding:3px 8px;border-radius:3px;font-size:11px;color:var(--text-secondary);border:1px solid transparent;transition:background 0.1s;`;
+      dRow.addEventListener('mouseenter',()=>{dRow.style.background='rgba(73,98,89,0.06)';dRow.style.borderColor='rgba(73,98,89,0.15)';});
+      dRow.addEventListener('mouseleave',()=>{dRow.style.background='';dRow.style.borderColor='transparent';});
+      const displayName=doc.tobeLabel||doc.name;
+      dRow.innerHTML=`${fsvg(4,11)}<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${displayName}">${displayName}</span><span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--text-muted);flex-shrink:0;padding:1px 4px;background:rgba(73,98,89,0.08);border-radius:3px;">이관됨</span>`;
+      dl.appendChild(dRow);
+    });
+    ch.appendChild(dl);
+  }
+
+  node.children.forEach(c=>ch.appendChild(buildOutlineNode(c,depth+1)));
+  wrap.appendChild(item);wrap.appendChild(ch);
+  return wrap;
+}
+
+function tobeOutlineExpandAll(){
+  function setOpen(nodes){nodes.forEach(n=>{n._outlineOpen=true;setOpen(n.children);});}
+  setOpen(tobeTree);renderTobeOutline();
+}
+function tobeOutlineCollapseAll(){
+  function setClose(nodes,depth=0){nodes.forEach(n=>{if(depth>0)n._outlineOpen=false;setClose(n.children,depth+1);});}
+  setClose(tobeTree);renderTobeOutline();
+}
 
 // INIT — localStorage에서 복원 후 렌더
 lsLoad();
