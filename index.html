@@ -200,6 +200,22 @@ body{font-family:'IBM Plex Sans KR',sans-serif;background:var(--bg-base);color:v
 .toast.success{border-color:var(--accent-green);}.toast.error{border-color:var(--accent-red);}.toast.info{border-color:var(--accent-blue);}
 @keyframes si{from{transform:translateX(16px);opacity:0;}to{transform:translateX(0);opacity:1;}}
 .fi{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;}
+/* MEMO PAD */
+.memo-modal{background:var(--bg-panel);border:1px solid var(--border-bright);border-radius:8px;width:560px;max-width:96vw;max-height:88vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(0,0,0,0.5),0 0 20px rgba(139,92,246,0.15);resize:both;}
+.memo-header{padding:11px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:9px;background:var(--bg-card);flex-shrink:0;cursor:move;user-select:none;}
+.memo-title-input{background:transparent;border:none;outline:none;color:var(--accent-purple);font-family:'IBM Plex Sans KR',sans-serif;font-size:13px;font-weight:600;flex:1;min-width:0;}
+.memo-title-input::placeholder{color:var(--text-muted);}
+.memo-title-input:focus{background:var(--bg-base);border-radius:3px;padding:0 4px;}
+.memo-body{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.memo-toolbar{padding:5px 10px;border-bottom:1px solid var(--border);background:var(--bg-base);display:flex;gap:4px;align-items:center;flex-shrink:0;flex-wrap:wrap;}
+.memo-ta{flex:1;background:var(--bg-base);border:none;outline:none;color:var(--text-primary);font-family:'IBM Plex Sans KR',sans-serif;font-size:12px;line-height:1.7;resize:none;padding:12px 14px;overflow-y:auto;}
+.memo-ta::placeholder{color:var(--text-muted);}
+.memo-ta::-webkit-scrollbar{width:3px;}.memo-ta::-webkit-scrollbar-thumb{background:var(--border-bright);}
+.memo-footer{padding:7px 12px;border-top:1px solid var(--border);background:var(--bg-card);display:flex;align-items:center;gap:8px;flex-shrink:0;font-size:10px;color:var(--text-muted);font-family:'IBM Plex Mono',monospace;}
+.memo-fab{position:fixed;bottom:20px;right:20px;z-index:500;width:44px;height:44px;border-radius:50%;background:var(--accent-purple);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 4px 16px rgba(139,92,246,0.4);transition:all 0.2s;}
+.memo-fab:hover{background:#7c3aed;transform:scale(1.08);box-shadow:0 6px 20px rgba(139,92,246,0.5);}
+.memo-fab .memo-badge{position:absolute;top:-3px;right:-3px;background:var(--accent-orange);color:#000;border-radius:50%;width:16px;height:16px;font-size:9px;display:none;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-weight:600;}
+.memo-slot-tag{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:10px;font-size:9px;background:rgba(139,92,246,0.15);color:#c4b5fd;border:1px solid rgba(139,92,246,0.3);}
 </style>
 </head>
 <body>
@@ -214,6 +230,7 @@ body{font-family:'IBM Plex Sans KR',sans-serif;background:var(--bg-base);color:v
       <div class="prl"><span id="pMapped">0/0</span><span id="pPct">0%</span></div></div>
     </div>
     <button class="btn btn-ghost btn-sm" onclick="clearAll()">🗑 초기화</button>
+    <button class="btn btn-sm" onclick="openMemo()" id="memoHeaderBtn" style="background:rgba(139,92,246,0.15);color:#c4b5fd;border:1px solid rgba(139,92,246,0.35);" title="메모판 열기">📝 메모</button>
     <button class="btn btn-ghost btn-sm" onclick="undoLastAction()" title="한 단계 되돌리기">↩ 되돌리기</button>
     <button class="btn btn-ghost btn-sm" onclick="document.getElementById('jsonFileInput').click()">📂 JSON 가져오기</button>
     <input type="file" id="jsonFileInput" accept=".json" style="display:none" onchange="importJSON(event)">
@@ -371,6 +388,59 @@ body{font-family:'IBM Plex Sans KR',sans-serif;background:var(--bg-base);color:v
     </div>
   </div>
 </div>
+
+<!-- MEMO MODAL (floating, draggable) -->
+<div id="memoModal" style="display:none;position:fixed;z-index:800;top:70px;right:24px;">
+  <div class="memo-modal" id="memoBox">
+    <div class="memo-header" id="memoDragHandle">
+      <span style="font-size:16px;flex-shrink:0">📝</span>
+      <input class="memo-title-input" id="memoTitle" placeholder="메모 제목..." maxlength="60">
+      <span class="memo-slot-tag" id="memoSlotTag" style="display:none"></span>
+      <button class="btn btn-ghost btn-sm btn-icon" onclick="clearMemo()" title="메모 내용 지우기" style="color:var(--accent-red);border-color:rgba(239,68,68,0.3)">🗑</button>
+      <button class="btn btn-ghost btn-sm btn-icon" onclick="closeMemo()" title="닫기">✕</button>
+    </div>
+    <div class="memo-body">
+      <div class="memo-toolbar">
+        <span style="font-size:10px;color:var(--text-muted);margin-right:2px">서식:</span>
+        <button class="btn btn-ghost btn-sm" onclick="memoInsert('## ')" title="제목">H</button>
+        <button class="btn btn-ghost btn-sm" onclick="memoInsert('- ')" title="목록">•</button>
+        <button class="btn btn-ghost btn-sm" onclick="memoInsert('[ ] ')" title="체크박스">☐</button>
+        <button class="btn btn-ghost btn-sm" onclick="memoInsert('[x] ')" title="체크완료">☑</button>
+        <button class="btn btn-ghost btn-sm" onclick="memoInsert('⚠️ ')" title="경고">⚠️</button>
+        <button class="btn btn-ghost btn-sm" onclick="memoInsert('✅ ')" title="완료">✅</button>
+        <button class="btn btn-ghost btn-sm" onclick="memoInsert('❌ ')" title="오류">❌</button>
+        <button class="btn btn-ghost btn-sm" onclick="memoInsert('---
+')" title="구분선">—</button>
+        <div style="margin-left:auto;display:flex;gap:4px;align-items:center;">
+          <span style="font-size:9px;color:var(--text-muted)" id="memoAutoSaveLabel"></span>
+          <button class="btn btn-sm" onclick="saveMemoToCurrentSlot()" style="background:rgba(139,92,246,0.2);color:#c4b5fd;border:1px solid rgba(139,92,246,0.35);" title="현재 슬롯에 메모 저장">💾 슬롯 저장</button>
+        </div>
+      </div>
+      <textarea class="memo-ta" id="memoText" placeholder="시뮬레이션 중 체크할 사항, 이관 규칙, 주의사항 등을 자유롭게 메모하세요.
+
+예시)
+## 이관 규칙
+- [ ] 품질관리 문서 → 신규 품질 폴더로
+- [ ] 안전관리 문서 → 안전 체계로 이관
+
+## 확인 사항
+⚠️ Rev.3 이상만 이관 대상
+✅ 계약서류 우선 이관 완료
+❌ 기초설계 문서 미이관 (검토중)"></textarea>
+    </div>
+    <div class="memo-footer">
+      <span id="memoCharCount">0자</span>
+      <span style="margin-left:4px">·</span>
+      <span id="memoLastSaved">저장 안됨</span>
+      <span style="margin-left:auto;font-size:9px;opacity:0.6">드래그로 이동 · 우하단 모서리로 크기조절</span>
+    </div>
+  </div>
+</div>
+
+<!-- MEMO FAB (floating action button) -->
+<button class="memo-fab" id="memoFab" onclick="openMemo()" title="메모판 열기">
+  📝<span class="memo-badge" id="memoBadge"></span>
+</button>
 
 <div class="toast-con" id="toastCon"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -1157,6 +1227,8 @@ function lsLoad(){
       slot.mappings.forEach(m=>{const doc=allDocs.find(d=>d.id===m.id);if(doc){doc.mapped=m.mapped;doc.tobeNodeId=m.tobeNodeId;}});
       renderTobeTree();renderAsIsTree();updateStats();updateProgress();
       document.getElementById('tobeES').style.display='none';
+      // 메모 복원
+      loadMemoFromSlot(savedSlots[activeSlot]);
     }
   }catch(e){console.warn('localStorage 불러오기 실패:',e);}
 }
@@ -1202,9 +1274,17 @@ function openSlotPickModal(){
 
 function confirmSlotSave(){
   const name=document.getElementById('slotNameInput').value.trim()||`체계 ${pendingSlotIdx+1}`;
-  savedSlots[pendingSlotIdx]={name,tree:JSON.parse(JSON.stringify(tobeTree)),mappings:allDocs.map(d=>({id:d.id,mapped:d.mapped,tobeNodeId:d.tobeNodeId})),savedAt:new Date().toLocaleString()};
+  // 기존 슬롯의 메모 유지 (덮어쓸 때 메모 보존)
+  const prevMemo=savedSlots[pendingSlotIdx]?.memo||null;
+  // 현재 열린 메모 내용도 수집
+  const memoTitle=document.getElementById('memoTitle').value;
+  const memoText=document.getElementById('memoText').value;
+  const currentMemo=(memoTitle||memoText)?{title:memoTitle,text:memoText,savedAt:new Date().toLocaleString()}:prevMemo;
+  savedSlots[pendingSlotIdx]={name,tree:JSON.parse(JSON.stringify(tobeTree)),mappings:allDocs.map(d=>({id:d.id,mapped:d.mapped,tobeNodeId:d.tobeNodeId})),savedAt:new Date().toLocaleString(),memo:currentMemo};
   activeSlot=pendingSlotIdx;renderSlots();closeModal('slotNameModal');
   lsSave();
+  updateMemoSlotTag();
+  document.getElementById('memoLastSaved').textContent='저장됨 '+new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
   toast(`슬롯 ${pendingSlotIdx+1}: "${name}" 저장 완료 💾`,'success');
 }
 
@@ -1218,6 +1298,8 @@ function loadSlot(idx){
   slot.mappings.forEach(m=>{const doc=allDocs.find(d=>d.id===m.id);if(doc){doc.mapped=m.mapped;doc.tobeNodeId=m.tobeNodeId;}});
   activeSlot=idx;renderTobeTree();renderAsIsTree();updateStats();updateProgress();renderSlots();
   lsSave();
+  // 메모 복원
+  loadMemoFromSlot(slot);
   const savedAt=slot.savedAt?` (저장: ${slot.savedAt})`:'';
   toast(`슬롯 ${idx+1} "${slot.name}" 불러옴${savedAt}`,'success');
 }
@@ -1379,35 +1461,58 @@ function importJSON(e){
   reader.onload=ev=>{
     try{
       const data=JSON.parse(ev.target.result);
-      // AS-IS 복원
+
+      // 1단계: AS-IS 복원 (buildAsIsTree가 allDocs와 doc ID를 새로 생성)
       if(data.asIs&&data.asIs.length){
         asIsData=data.asIs;
-        buildAsIsTree();renderAsIsTree();swA('tree');
+        buildAsIsTree();
         document.getElementById('importES').style.display='none';
-        updateStats();updateProgress();
       }
-      // To-be 트리 복원
+
+      // 2단계: To-be 트리 복원 (node.docs 배열은 아직 비워둠 — 3단계에서 재구성)
       if(data.tobe&&data.tobe.length){
-        tobeTree=data.tobe;
+        // tobe 노드의 docs 배열을 일단 초기화 (id 불일치 방지)
+        function clearNodeDocs(nodes){nodes.forEach(n=>{n.docs=[];clearNodeDocs(n.children);});}
+        tobeTree=JSON.parse(JSON.stringify(data.tobe));
+        clearNodeDocs(tobeTree);
         document.getElementById('tobeES').style.display='none';
       }
-      // 매핑 복원
+
+      // 3단계: 매핑 복원 — mappings[].id 는 buildAsIsTree()가 생성한 allDocs[].id 와 동일한
+      //         pathKey 기반이므로 같은 asIsData 로 빌드하면 항상 일치함
       if(data.mappings&&data.mappings.length){
+        // 먼저 allDocs 매핑 상태 복원
         data.mappings.forEach(m=>{
+          if(!m.mapped||!m.tobeNodeId)return; // 이관되지 않은 문서는 건너뜀
           const doc=allDocs.find(d=>d.id===m.id);
-          if(doc){doc.mapped=m.mapped;doc.tobeNodeId=m.tobeNodeId;if(m.tobeLabel)doc.tobeLabel=m.tobeLabel;}
+          if(doc){
+            doc.mapped=true;
+            doc.tobeNodeId=m.tobeNodeId;
+            if(m.tobeLabel)doc.tobeLabel=m.tobeLabel;
+          }
         });
-        // tobe tree docs 배열도 재구성
+        // tobeTree 각 노드의 docs 배열을 allDocs 기준으로 완전 재구성
         function rebuildDocs(nodes){
           nodes.forEach(n=>{
-            n.docs=allDocs.filter(d=>d.tobeNodeId===n.id).map(d=>d.id);
+            n.docs=allDocs.filter(d=>d.mapped&&d.tobeNodeId===n.id).map(d=>d.id);
             rebuildDocs(n.children);
           });
         }
         rebuildDocs(tobeTree);
       }
-      renderTobeTree();renderAsIsTree();updateStats();updateProgress();renderSlots();
+
+      renderTobeTree();renderAsIsTree();swA('tree');updateStats();updateProgress();renderSlots();
       lsSave();
+      // 메모 복원
+      if(data.memo){
+        document.getElementById('memoTitle').value=data.memo.title||'';
+        document.getElementById('memoText').value=data.memo.text||'';
+        document.getElementById('memoLastSaved').textContent=data.memo.savedAt?'저장됨 '+data.memo.savedAt:'저장 안됨';
+        updateMemoCount();
+        // 내용 있으면 FAB 뱃지 표시
+        const badge=document.getElementById('memoBadge');
+        if(badge&&(data.memo.title||data.memo.text)){badge.style.display='flex';badge.textContent='✍';}
+      }
       toast('JSON 가져오기 완료! 작업 내용이 복원됐습니다','success');
     }catch(err){
       toast('JSON 파일 오류: '+err.message,'error');
@@ -1419,10 +1524,20 @@ function importJSON(e){
 }
 
 function exportData(){
-  const data={exportedAt:new Date().toISOString(),asIs:asIsData,tobe:tobeTree,mappings:allDocs.map(d=>({id:d.id,name:d.name,tobeLabel:d.tobeLabel||d.name,asIsPath:d.path,mapped:d.mapped,tobePath:d.tobeNodeId?getPath(d.tobeNodeId):null}))};
+  // 현재 메모 내용도 수집
+  const memoTitle=document.getElementById('memoTitle').value;
+  const memoText=document.getElementById('memoText').value;
+  const memoData=(memoTitle||memoText)?{title:memoTitle,text:memoText,savedAt:new Date().toLocaleString()}:null;
+  const data={
+    exportedAt:new Date().toISOString(),
+    asIs:asIsData,
+    tobe:tobeTree,
+    mappings:allDocs.map(d=>({id:d.id,name:d.name,tobeLabel:d.tobeLabel||d.name,asIsPath:d.path,mapped:d.mapped,tobeNodeId:d.tobeNodeId||null,tobePath:d.tobeNodeId?getPath(d.tobeNodeId):null})),
+    memo:memoData
+  };
   const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
   const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='docflow_export.json';a.click();
-  toast('JSON 내보내기 완료','success');
+  toast('JSON 내보내기 완료 (메모 포함)','success');
 }
 
 function clearAll(){
@@ -1439,6 +1554,166 @@ function clearAll(){
   try{localStorage.removeItem(LS_SLOTS);localStorage.removeItem(LS_ASDATA);localStorage.removeItem(LS_ACTIVE);}catch(e){}
   toast('초기화 완료','info');
 }
+
+// ═══════════════════════════════════════════════
+// MEMO PAD
+// ═══════════════════════════════════════════════
+let memoOpen=false;
+let memoAutoSaveTimer=null;
+
+function openMemo(){
+  const modal=document.getElementById('memoModal');
+  modal.style.display='block';
+  memoOpen=true;
+  document.getElementById('memoFab').style.display='none';
+  updateMemoSlotTag();
+  // 글자수 갱신
+  updateMemoCount();
+}
+
+function closeMemo(){
+  document.getElementById('memoModal').style.display='none';
+  memoOpen=false;
+  document.getElementById('memoFab').style.display='flex';
+  // 내용 있으면 FAB 뱃지 표시
+  const hasContent=document.getElementById('memoText').value.trim().length>0;
+  const badge=document.getElementById('memoBadge');
+  badge.style.display=hasContent?'flex':'none';
+  badge.textContent='✍';
+}
+
+function clearMemo(){
+  if(!confirm('메모 내용을 모두 지울까요?'))return;
+  document.getElementById('memoText').value='';
+  document.getElementById('memoTitle').value='';
+  updateMemoCount();
+  toast('메모 초기화됨','info');
+}
+
+function memoInsert(text){
+  const ta=document.getElementById('memoText');
+  const start=ta.selectionStart;
+  const val=ta.value;
+  // 줄 시작에 삽입
+  const lineStart=val.lastIndexOf('\n',start-1)+1;
+  ta.value=val.slice(0,lineStart)+text+val.slice(lineStart);
+  ta.selectionStart=ta.selectionEnd=lineStart+text.length+(start-lineStart);
+  ta.focus();
+  updateMemoCount();
+}
+
+function updateMemoCount(){
+  const len=document.getElementById('memoText').value.length;
+  document.getElementById('memoCharCount').textContent=len.toLocaleString()+'자';
+  // 자동저장 트리거 (2초 디바운스)
+  clearTimeout(memoAutoSaveTimer);
+  if(activeSlot!==null&&savedSlots[activeSlot]){
+    document.getElementById('memoAutoSaveLabel').textContent='자동저장 예정...';
+    memoAutoSaveTimer=setTimeout(()=>{
+      autoSaveMemoToSlot();
+    },2000);
+  }
+}
+
+function updateMemoSlotTag(){
+  const tag=document.getElementById('memoSlotTag');
+  if(activeSlot!==null&&savedSlots[activeSlot]){
+    tag.textContent='슬롯 '+(activeSlot+1)+': '+savedSlots[activeSlot].name;
+    tag.style.display='inline-flex';
+  } else {
+    tag.style.display='none';
+  }
+}
+
+function autoSaveMemoToSlot(){
+  if(activeSlot===null||!savedSlots[activeSlot])return;
+  const title=document.getElementById('memoTitle').value;
+  const text=document.getElementById('memoText').value;
+  savedSlots[activeSlot].memo={title,text,savedAt:new Date().toLocaleString()};
+  lsSave();
+  const now=new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
+  document.getElementById('memoLastSaved').textContent='자동저장 '+now;
+  document.getElementById('memoAutoSaveLabel').textContent='';
+}
+
+function saveMemoToCurrentSlot(){
+  if(activeSlot===null||!savedSlots[activeSlot]){
+    toast('먼저 슬롯을 선택/저장하세요','warn');return;
+  }
+  const title=document.getElementById('memoTitle').value;
+  const text=document.getElementById('memoText').value;
+  savedSlots[activeSlot].memo={title,text,savedAt:new Date().toLocaleString()};
+  lsSave();
+  const now=new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
+  document.getElementById('memoLastSaved').textContent='저장됨 '+now;
+  document.getElementById('memoAutoSaveLabel').textContent='';
+  toast('메모가 슬롯 '+(activeSlot+1)+'에 저장됐습니다','success');
+}
+
+function loadMemoFromSlot(slot){
+  if(slot&&slot.memo){
+    document.getElementById('memoTitle').value=slot.memo.title||'';
+    document.getElementById('memoText').value=slot.memo.text||'';
+    document.getElementById('memoLastSaved').textContent=slot.memo.savedAt?'저장됨 '+slot.memo.savedAt:'저장 안됨';
+  } else {
+    // 슬롯에 메모 없으면 초기화하지 않고 현재 내용 유지 (선택적)
+    document.getElementById('memoLastSaved').textContent='이 슬롯에 메모 없음';
+  }
+  updateMemoCount();
+  updateMemoSlotTag();
+}
+
+// 드래그로 메모창 이동
+(function initMemoDrag(){
+  function setup(){
+    const handle=document.getElementById('memoDragHandle');
+    const box=document.getElementById('memoModal');
+    if(!handle){setTimeout(setup,300);return;}
+    let isDrag=false,ox=0,oy=0,sx=0,sy=0;
+    handle.addEventListener('mousedown',e=>{
+      if(e.target.tagName==='INPUT'||e.target.tagName==='BUTTON')return;
+      isDrag=true;
+      const rect=box.getBoundingClientRect();
+      ox=rect.left;oy=rect.top;sx=e.clientX;sy=e.clientY;
+      document.body.style.userSelect='none';
+    });
+    document.addEventListener('mousemove',e=>{
+      if(!isDrag)return;
+      const nx=ox+(e.clientX-sx),ny=oy+(e.clientY-sy);
+      box.style.left=Math.max(0,Math.min(window.innerWidth-200,nx))+'px';
+      box.style.top=Math.max(0,Math.min(window.innerHeight-100,ny))+'px';
+      box.style.right='auto';
+    });
+    document.addEventListener('mouseup',()=>{isDrag=false;document.body.style.userSelect='';});
+  }
+  if(document.readyState!=='loading')setup();
+  else document.addEventListener('DOMContentLoaded',setup);
+})();
+
+// 메모 textarea 이벤트
+document.addEventListener('DOMContentLoaded',()=>{
+  const ta=document.getElementById('memoText');
+  if(ta){
+    ta.addEventListener('input',updateMemoCount);
+    // 체크박스 토글: "[ ]" → "[x]", "[x]" → "[ ]"
+    ta.addEventListener('click',e=>{
+      const pos=ta.selectionStart;
+      const val=ta.value;
+      const lineStart=val.lastIndexOf('\n',pos-1)+1;
+      const lineEnd=val.indexOf('\n',pos);
+      const line=val.slice(lineStart,lineEnd===-1?undefined:lineEnd);
+      if(line.startsWith('[ ] ')){
+        ta.value=val.slice(0,lineStart)+'[x] '+line.slice(4)+(lineEnd===-1?'':val.slice(lineEnd));
+        ta.selectionStart=ta.selectionEnd=pos;
+        updateMemoCount();
+      } else if(line.startsWith('[x] ')){
+        ta.value=val.slice(0,lineStart)+'[ ] '+line.slice(4)+(lineEnd===-1?'':val.slice(lineEnd));
+        ta.selectionStart=ta.selectionEnd=pos;
+        updateMemoCount();
+      }
+    });
+  }
+});
 
 // INIT — localStorage에서 복원 후 렌더
 lsLoad();
