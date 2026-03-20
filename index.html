@@ -789,9 +789,21 @@ function mkDI(doc){
   el.addEventListener('dragstart',e=>{
     draggedDoc=doc;
     if(checkedDocs.size>0&&checkedDocs.has(doc.id)){
-      draggedDocs=[...checkedDocs];
+      // 이미 이관된 문서는 제외 — [대기] 상태만 드래그 이관
+      draggedDocs=[...checkedDocs].filter(id=>{const d=allDocs.find(x=>x.id===id);return d&&!d.mapped;});
     } else {
+      // 단독 드래그: 이미 이관된 문서면 드래그 자체를 막음
+      if(doc.mapped){
+        e.preventDefault();
+        toast(`"${doc.name}"은 이미 이관됐습니다. ↩ 되돌리기 후 재이관하세요`,'warn');
+        draggedDocs=[];draggedDoc=null;return;
+      }
       draggedDocs=[doc.id];
+    }
+    if(draggedDocs.length===0){
+      e.preventDefault();
+      toast('선택한 문서 중 이관 가능한 [대기] 상태 문서가 없습니다','warn');
+      draggedDoc=null;return;
     }
     el.classList.add('dragging');e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',doc.id);
   });
@@ -1181,19 +1193,19 @@ function applyAsIsOpenState(state){
 // mapDoc: batch=true면 렌더링 생략
 function mapDoc(docId,nodeId,batch=false){
   const doc=allDocs.find(d=>d.id===docId),node=findN(tobeTree,nodeId);if(!doc||!node)return;
-  // 요청3: 이미 이관된 문서 중복 방지
+  // 이미 이관된 문서는 중복 이관 차단 — [대기] 상태만 이관 가능
   if(doc.mapped&&doc.tobeNodeId){
-    if(!batch)toast(`"${doc.name}"은 이미 이관된 문서입니다. 되돌리기 후 재이관하세요`,'warn');
+    if(!batch)toast(`"${doc.name}"은 이미 이관됐습니다. ↩ 되돌리기 후 재이관하세요`,'warn');
     return;
   }
   doc.mapped=true;doc.tobeNodeId=nodeId;if(!node.docs.includes(docId))node.docs.push(docId);
-  if(!doc.tobeLabel)doc.tobeLabel=doc.name; // 처음 이관 시 tobeLabel 초기화
+  if(!doc.tobeLabel)doc.tobeLabel=doc.name;
   if(!batch){
     renderTobeTree();
     const st=getAsIsOpenState();renderAsIsTree();applyAsIsOpenState(st);
     updateProgress();updateStats();
+    lsSave(); // 단건 이관 즉시 저장
     toast(`"${doc.name}" → ${getPath(nodeId)}`,'success');
-    // 이관 완료 후 선택 해제
     checkedDocs.clear();lastCheckedDocId=null;updMoveBtn();
   }
 }
@@ -1203,17 +1215,21 @@ function finalizeMapDoc(){
   renderTobeTree();
   const st=getAsIsOpenState();renderAsIsTree();applyAsIsOpenState(st);
   updateProgress();updateStats();
-  const cnt=draggedDocs.filter(id=>{const d=allDocs.find(x=>x.id===id);return d&&d.mapped;}).length||1;
+  // 이번에 실제로 이관된 문서만 카운트 (draggedDocs 기준, mapped && tobeNodeId 존재)
+  const cnt=draggedDocs.filter(id=>{const d=allDocs.find(x=>x.id===id);return d&&d.mapped;}).length;
   if(cnt>0)toast(`${cnt}개 문서 이관 완료`,'success');
   draggedDocs=[];draggedDoc=null;
   // 이관 완료 후 선택 해제
   checkedDocs.clear();lastCheckedDocId=null;updMoveBtn();
+  lsSave(); // 이관 상태 즉시 저장
 }
 
 function unMapDoc(docId,nodeId){
   const doc=allDocs.find(d=>d.id===docId),node=findN(tobeTree,nodeId);
   if(doc){doc.mapped=false;doc.tobeNodeId=null;}if(node)node.docs=node.docs.filter(id=>id!==docId);
-  renderTobeTree();const st=getAsIsOpenState();renderAsIsTree();applyAsIsOpenState(st);updateProgress();updateStats();toast('이관 취소됨','info');
+  renderTobeTree();const st=getAsIsOpenState();renderAsIsTree();applyAsIsOpenState(st);updateProgress();updateStats();
+  lsSave(); // 되돌리기 상태 즉시 저장
+  toast('이관 취소됨','info');
 }
 
 
@@ -1283,9 +1299,17 @@ function moveCheckedDocs(){
 function confirmMove(){
   if(!moveTarget){toast('이관 대상을 선택해주세요','warn');return;}
   saveUndoState();
-  let count=0;checkedDocs.forEach(did=>{mapDoc(did,moveTarget,true);count++;});
+  // [대기] 상태 문서만 이관 — 이미 이관된 문서는 완전히 건너뜀
+  const toMap=[...checkedDocs].filter(id=>{const d=allDocs.find(x=>x.id===id);return d&&!d.mapped;});
+  if(!toMap.length){
+    toast('선택한 문서가 모두 이미 이관됐습니다. ↩ 되돌리기 후 재이관하세요','warn');
+    closeModal('moveModal');return;
+  }
+  toMap.forEach(did=>mapDoc(did,moveTarget,true));
   const st=getAsIsOpenState();renderTobeTree();renderAsIsTree();applyAsIsOpenState(st);updateProgress();updateStats();
-  checkedDocs.clear();lastCheckedDocId=null;updMoveBtn();closeModal('moveModal');toast(`${count}개 문서 이관 완료`,'success');
+  lsSave(); // 배치 이관 완료 후 저장
+  checkedDocs.clear();lastCheckedDocId=null;updMoveBtn();closeModal('moveModal');
+  toast(`${toMap.length}개 문서 이관 완료`,'success');
 }
 
 // ═══════════════════════════════════════════════
@@ -1429,8 +1453,6 @@ function collapseAllTobe(){function s(n){n.forEach(x=>{x.open=false;s(x.children
 function openReport(){
   const total=allDocs.length;if(!total){toast('분석할 문서가 없습니다','warn');return;}
   const mapped=allDocs.filter(d=>d.mapped),unmapped=allDocs.filter(d=>!d.mapped);
-  const nm={};mapped.forEach(d=>{if(!nm[d.rawName])nm[d.rawName]=[];nm[d.rawName].push(d);});
-  const dups=Object.values(nm).filter(a=>a.length>1).flat();
   const pct=Math.round(mapped.length/total*100);
 
   // OVERVIEW
@@ -1439,14 +1461,12 @@ function openReport(){
       <div class="sc"><div class="sv stot">${total}</div><div class="sl">전체 문서</div></div>
       <div class="sc"><div class="sv sok">${mapped.length}</div><div class="sl">이관 완료</div></div>
       <div class="sc"><div class="sv swarn">${unmapped.length}</div><div class="sl">미이관 누락</div></div>
-      <div class="sc"><div class="sv serr">${dups.length}</div><div class="sl">중복 매핑</div></div>
+      <div class="sc"><div class="sv" style="color:var(--accent-cyan)">${pct}%</div><div class="sl">이관률</div></div>
     </div>
     <div style="margin-bottom:12px">
       <div class="prl"><span>전체 이관 진행률</span><span style="color:var(--accent-cyan)">${pct}%</span></div>
       <div class="prw" style="height:8px;margin-top:3px"><div class="prf" style="width:${pct}%"></div></div>
-    </div>
-    ${dups.length?`<div class="rsect"><div class="rh">⚡ 중복 매핑 (${dups.length}개)</div><div class="rlist">${dups.map(d=>`<div class="ri"><div class="ridot" style="background:var(--accent-red)"></div><div class="riname">${d.name}</div><div class="ripath">${getPath(d.tobeNodeId)}</div><span class="ritag" style="background:rgba(239,68,68,0.15);color:var(--accent-red)">중복</span></div>`).join('')}</div></div>`:'<div class="rsect"><div class="rh">✅ 중복 없음</div></div>'}`;
-
+    </div>`;
   // UNMAPPED by folder
   const uHtml=Object.keys(asIsTreeData).map(confirm=>{
     const tabs=asIsTreeData[confirm];
