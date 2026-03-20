@@ -382,20 +382,21 @@ body{font-family:'IBM Plex Sans KR',sans-serif;background:var(--bg-base);color:v
     <div class="stab active" onclick="swT('tree')" id="tt-tree">🌲 트리 빌더</div>
     <div class="stab" onclick="swT('visual')" id="tt-visual">🗂 시각적 탭 보기</div>
   </div>
-  <div class="ptb">
+  <div class="ptb" style="flex-wrap:wrap;gap:4px;">
     <button class="btn btn-primary btn-sm" onclick="addTobeRoot()">＋ 그룹</button>
     <button class="btn btn-ghost btn-sm" onclick="loadTobeTemplate()">템플릿</button>
     <button class="btn btn-ghost btn-sm btn-icon" onclick="collapseAllTobe()" title="전체 접기">－</button>
     <button class="btn btn-ghost btn-sm btn-icon" onclick="expandAllTobe()" title="전체 펼치기">＋</button>
     <button class="btn btn-sm" onclick="openTobeOutline()" title="이관 체계를 세로형 트리로 보기" style="background:rgba(73,98,89,0.15);color:#3a5049;border:1px solid rgba(73,98,89,0.35);">🗂 체계 보기</button>
-    <span id="tobeSelBar" style="display:none;align-items:center;gap:4px;margin-left:4px;">
-      <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text-muted)" id="tobeSelCount">0개 선택</span>
-      <button class="btn btn-ghost btn-sm btn-icon" onclick="tobeSelMoveUp()" title="위로 이동">↑</button>
-      <button class="btn btn-ghost btn-sm btn-icon" onclick="tobeSelMoveDown()" title="아래로 이동">↓</button>
-      <button class="btn btn-ghost btn-sm btn-icon" onclick="tobeSelDelete()" title="선택 삭제 (Delete)" style="color:var(--accent-red);border-color:rgba(185,64,64,0.3)">🗑</button>
-      <button class="btn btn-ghost btn-sm btn-icon" onclick="tobeSelClear()" title="선택 해제">✕</button>
-    </span>
     <div style="margin-left:auto" class="chip chip-green" id="tobeProgress">0% 이관</div>
+  </div>
+  <div id="tobeSelBar" style="display:none;padding:4px 9px;background:rgba(73,98,89,0.08);border-bottom:1px solid rgba(73,98,89,0.2);align-items:center;gap:6px;flex-shrink:0;">
+    <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#3a5049;font-weight:600;" id="tobeSelCount">0개 선택</span>
+    <span style="font-size:10px;color:var(--text-muted)">·</span>
+    <button class="btn btn-ghost btn-sm" onclick="tobeSelMoveUp()" title="위로 이동" style="padding:2px 7px;font-size:11px;">↑ 위로</button>
+    <button class="btn btn-ghost btn-sm" onclick="tobeSelMoveDown()" title="아래로 이동" style="padding:2px 7px;font-size:11px;">↓ 아래로</button>
+    <button class="btn btn-ghost btn-sm" onclick="tobeSelDelete()" title="선택 삭제 (Delete키)" style="padding:2px 7px;font-size:11px;color:var(--accent-red);border-color:rgba(185,64,64,0.3);">🗑 삭제</button>
+    <button class="btn btn-ghost btn-sm btn-icon" onclick="tobeSelClear()" title="선택 해제" style="margin-left:auto;">✕</button>
   </div>
   <div class="tobe-search-bar" id="tobeSearchBar">
     <div class="sb" style="flex:1"><span style="font-size:11px;color:var(--text-muted)">🔍</span><input type="text" id="tobeSearchInput" placeholder="신규 체계 내 문서 검색..." oninput="filterTobeTree(this.value)"></div>
@@ -1037,8 +1038,9 @@ function flattenTree(nodes,parent=null,result=[]){
 function updTobeSelBar(){
   const bar=document.getElementById('tobeSelBar');
   const cnt=document.getElementById('tobeSelCount');
+  if(!bar||!cnt)return;
   if(tobeSelected.size>0){
-    bar.style.display='inline-flex';
+    bar.style.display='flex';
     cnt.textContent=tobeSelected.size+'개 선택';
   } else {
     bar.style.display='none';
@@ -1048,7 +1050,6 @@ function updTobeSelBar(){
 function tobeCbClick(nodeId,e){
   const flat=flattenTree(tobeTree);
   if(e.shiftKey&&lastSelectedTobeId&&lastSelectedTobeId!==nodeId){
-    // shift 범위선택
     const ids=flat.map(f=>f.node.id);
     const from=ids.indexOf(lastSelectedTobeId),to=ids.indexOf(nodeId);
     if(from!==-1&&to!==-1){
@@ -1060,11 +1061,24 @@ function tobeCbClick(nodeId,e){
     else tobeSelected.add(nodeId);
   }
   lastSelectedTobeId=nodeId;
+  // DOM 전체 재생성 없이 하이라이트만 업데이트
+  document.querySelectorAll('#tobeTreeEl .tbnode').forEach(wrap=>{
+    const nid=wrap.dataset.nodeId;
+    const tbi=wrap.querySelector(':scope > .tbi');
+    const cb=wrap.querySelector(':scope > .tbi > .tbnode-cb');
+    if(!tbi)return;
+    if(tobeSelected.has(nid)){tbi.classList.add('tobe-sel');if(cb)cb.checked=true;}
+    else{tbi.classList.remove('tobe-sel');if(cb)cb.checked=false;}
+  });
   updTobeSelBar();
-  renderTobeTree(); // 하이라이트 갱신
 }
 
-function tobeSelClear(){tobeSelected.clear();lastSelectedTobeId=null;updTobeSelBar();renderTobeTree();}
+function tobeSelClear(){
+  tobeSelected.clear();lastSelectedTobeId=null;
+  document.querySelectorAll('#tobeTreeEl .tbi').forEach(el=>el.classList.remove('tobe-sel'));
+  document.querySelectorAll('#tobeTreeEl .tbnode-cb').forEach(cb=>cb.checked=false);
+  updTobeSelBar();
+}
 
 function tobeSelDelete(){
   if(!tobeSelected.size)return;
