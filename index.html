@@ -309,6 +309,7 @@ body{font-family:'IBM Plex Sans KR',sans-serif;background:var(--bg-base);color:v
     <button class="btn btn-ghost btn-sm" onclick="document.getElementById('jsonFileInput').click()">📂 JSON 가져오기</button>
     <input type="file" id="jsonFileInput" accept=".json" style="display:none" onchange="importJSON(event)">
     <button class="btn btn-success btn-sm" onclick="exportData()">⬇ JSON 내보내기</button>
+    <button class="btn btn-sm" onclick="exportTobeXLSX()" style="background:rgba(73,98,89,0.85);color:#fff;border:1px solid #3a5049;" title="TO-BE 이관 체계를 AS-IS 형식의 엑셀 파일로 추출">📊 TO-BE 엑셀 추출</button>
     <button class="btn btn-warning btn-sm" onclick="openReport()">📊 검증 리포트</button>
   </div>
 </div>
@@ -1007,7 +1008,8 @@ function renderTobeTree(){
 }
 
 function bldTN(node){
-  const canDrop=node.level>=2; // 0,1depth는 문서 드롭 불가
+  // canDrop: 모든 레벨에서 문서 드롭/배치 허용 (레벨 제한 없음)
+  const canDrop=true;
   const wrap=document.createElement('div');wrap.className=`tbnode tbl${node.level}`;wrap.dataset.nodeId=node.id;
   const item=document.createElement('div');item.className='tbi';
   const tog=document.createElement('div');tog.className=`ttog${node.open?' open':''}`;tog.textContent=node.open?'-':'+';
@@ -1028,17 +1030,16 @@ function bldTN(node){
   ppb.addEventListener('click',e=>{e.stopPropagation();if(clipboardNode)pasteNode(node.id);else toast('먼저 복사할 폴더를 선택하세요','warn');});acts.appendChild(ppb);
   const db=document.createElement('button');db.className='btn btn-ghost btn-sm btn-icon';db.title='삭제';db.style.color='var(--accent-red)';db.textContent='x';db.addEventListener('click',e=>{e.stopPropagation();delTN(node.id);});acts.appendChild(db);
   item.appendChild(tog);item.appendChild(ico);item.appendChild(inp);item.appendChild(badge);item.appendChild(acts);
-  if(canDrop){
-    item.addEventListener('dragover',e=>{e.preventDefault();item.classList.add('dovo');});
-    item.addEventListener('dragleave',()=>item.classList.remove('dovo'));
-    item.addEventListener('drop',e=>{
-      e.preventDefault();item.classList.remove('dovo');
-      const docs=draggedDocs.length>0?[...draggedDocs]:(draggedDoc?[draggedDoc.id]:[]);
-      if(docs.length>0){saveUndoState();docs.forEach(id=>mapDoc(id,node.id,true));finalizeMapDoc();}
-    });
-  }
+  // 드래그 드롭 — 모든 레벨 허용
+  item.addEventListener('dragover',e=>{e.preventDefault();item.classList.add('dovo');});
+  item.addEventListener('dragleave',()=>item.classList.remove('dovo'));
+  item.addEventListener('drop',e=>{
+    e.preventDefault();item.classList.remove('dovo');
+    const docs=draggedDocs.length>0?[...draggedDocs]:(draggedDoc?[draggedDoc.id]:[]);
+    if(docs.length>0){saveUndoState();docs.forEach(id=>mapDoc(id,node.id,true));finalizeMapDoc();}
+  });
   const ch=document.createElement('div');ch.className=`tbch${node.open?' open':''}`;
-  if(canDrop&&node.docs.length){
+  if(node.docs.length){
     const dl=document.createElement('div');dl.className='tbdl';
     node.docs.forEach(did=>{
       const doc=allDocs.find(d=>d.id===did);if(!doc)return;
@@ -1521,6 +1522,156 @@ function exportReport(){
   const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
   const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='docflow_report.csv';a.click();
   toast('CSV 내보내기 완료','success');
+}
+
+// ═══════════════════════════════════════════════
+// TO-BE XLSX 추출
+// ═══════════════════════════════════════════════
+function exportTobeXLSX(){
+  if(!tobeTree.length){toast('TO-BE 체계가 없습니다','warn');return;}
+
+  // ── 1. TO-BE 트리를 행 데이터로 변환 ──────────────────
+  // 출력 형식: confirm | path1 | path2 | path3 | path4(문서명) | path5(버전)
+  // 폴더 레벨 0→confirm, 1→path1, 2→path2, 3→path3, 문서→path4+path5
+  const rows=[];
+
+  function collectRows(node, ancestors){
+    const newAnc=[...ancestors, node.label];
+
+    // 이 노드에 직접 배치된 문서들
+    node.docs.forEach(did=>{
+      const doc=allDocs.find(d=>d.id===did);
+      if(!doc)return;
+      const displayName=doc.tobeLabel||doc.name;
+      // ancestors에서 레벨별 컬럼 매핑
+      const a=newAnc; // [lv0, lv1, lv2, lv3, ...]
+      rows.push({
+        confirm : a[0]||'',
+        path1   : a[1]||'',
+        path2   : a[2]||'',
+        path3   : a[3]||'',
+        path4   : displayName,
+        path5   : doc.version||'',
+        // 참고 컬럼
+        asis_path : doc.path||'',
+        tobe_path : newAnc.join(' > ')
+      });
+    });
+
+    // 자식 노드 재귀
+    node.children.forEach(c=>collectRows(c, newAnc));
+
+    // 문서도 자식도 없는 빈 폴더는 한 행 기록 (체계 공백 파악용)
+    if(node.docs.length===0 && node.children.length===0){
+      const a=newAnc;
+      rows.push({
+        confirm : a[0]||'',
+        path1   : a[1]||'',
+        path2   : a[2]||'',
+        path3   : a[3]||'',
+        path4   : '',
+        path5   : '',
+        asis_path : '',
+        tobe_path : newAnc.join(' > ')
+      });
+    }
+  }
+
+  tobeTree.forEach(root=>collectRows(root,[]));
+
+  if(!rows.length){toast('추출할 데이터가 없습니다','warn');return;}
+
+  // ── 2. SheetJS로 XLSX 생성 ─────────────────────────────
+  try{
+    const wb=XLSX.utils.book_new();
+
+    // ── 시트1: TO-BE 전체 (AS-IS 재입력용 포맷) ──
+    const tobeHeader=[['confirm','path1','path2','path3','path4','path5']];
+    const tobeData=rows.map(r=>[r.confirm,r.path1,r.path2,r.path3,r.path4,r.path5]);
+    const ws1=XLSX.utils.aoa_to_sheet([...tobeHeader,...tobeData]);
+
+    // 컬럼 너비 설정
+    ws1['!cols']=[
+      {wch:14},{wch:16},{wch:16},{wch:16},{wch:30},{wch:12}
+    ];
+
+    // 헤더 스타일 (SheetJS CE는 style 제한적 — 셀 참조로 기록)
+    // 헤더 셀에 s 속성 부여 (xlsx-style 필요없이 배경색은 지원 안 되지만 굵기는 됨)
+    ['A1','B1','C1','D1','E1','F1'].forEach(addr=>{
+      if(ws1[addr]) ws1[addr].s={font:{bold:true}};
+    });
+
+    XLSX.utils.book_append_sheet(wb, ws1, 'TO-BE 체계 (AS-IS 형식)');
+
+    // ── 시트2: 매핑 대조표 (AS-IS 경로 → TO-BE 경로) ──
+    const mapped=rows.filter(r=>r.path4&&r.asis_path);
+    const empty=rows.filter(r=>!r.path4);
+
+    if(mapped.length){
+      const mapHeader=[['문서명','버전','AS-IS 경로','TO-BE 경로','이관 그룹(confirm)','TO-BE path1','TO-BE path2','TO-BE path3']];
+      const mapData=mapped.map(r=>[
+        r.path4, r.path5,
+        r.asis_path, r.tobe_path,
+        r.confirm, r.path1, r.path2, r.path3
+      ]);
+      const ws2=XLSX.utils.aoa_to_sheet([...mapHeader,...mapData]);
+      ws2['!cols']=[{wch:28},{wch:10},{wch:36},{wch:36},{wch:14},{wch:14},{wch:14},{wch:14}];
+      ['A1','B1','C1','D1','E1','F1','G1','H1'].forEach(addr=>{
+        if(ws2[addr]) ws2[addr].s={font:{bold:true}};
+      });
+      XLSX.utils.book_append_sheet(wb, ws2, 'AS-IS→TO-BE 매핑');
+    }
+
+    // ── 시트3: 미이관 문서 목록 ──
+    const unmapped=allDocs.filter(d=>!d.mapped);
+    if(unmapped.length){
+      const umHeader=[['문서명','버전','AS-IS 경로(confirm)','AS-IS 탭','AS-IS 카테고리','AS-IS 서브','비고']];
+      const umData=unmapped.map(d=>[d.name,d.version||'',d.confirm||'',d.tab||'',d.cat||'',d.sub||'','미이관']);
+      const ws3=XLSX.utils.aoa_to_sheet([...umHeader,...umData]);
+      ws3['!cols']=[{wch:28},{wch:10},{wch:14},{wch:14},{wch:14},{wch:14},{wch:8}];
+      XLSX.utils.book_append_sheet(wb, ws3, '미이관 문서');
+    }
+
+    // ── 시트4: 빈 폴더 (공백 체계) ──
+    if(empty.length){
+      const emHeader=[['비어있는 폴더 경로','그룹(lv0)','탭(lv1)','카테고리(lv2)','서브(lv3)']];
+      const emData=empty.map(r=>[r.tobe_path,r.confirm,r.path1,r.path2,r.path3]);
+      const ws4=XLSX.utils.aoa_to_sheet([...emHeader,...emData]);
+      ws4['!cols']=[{wch:40},{wch:14},{wch:14},{wch:14},{wch:14}];
+      XLSX.utils.book_append_sheet(wb, ws4, '빈 폴더(공백 체계)');
+    }
+
+    // ── 시트5: 요약 통계 ──
+    const mapped_cnt=allDocs.filter(d=>d.mapped).length;
+    const pct=allDocs.length?Math.round(mapped_cnt/allDocs.length*100):0;
+    let folders=0; function cf2(ns){ns.forEach(n=>{folders++;cf2(n.children);});}cf2(tobeTree);
+    const summaryData=[
+      ['DocFlow — TO-BE 이관 체계 추출'],
+      ['생성일시', new Date().toLocaleString()],
+      [''],
+      ['항목','값'],
+      ['전체 AS-IS 문서 수', allDocs.length],
+      ['이관 완료', mapped_cnt],
+      ['미이관', allDocs.length-mapped_cnt],
+      ['이관율', pct+'%'],
+      ['TO-BE 폴더 수 (전체)', folders],
+      ['빈 폴더 수', empty.length],
+      [''],
+      ['※ "TO-BE 체계 (AS-IS 형식)" 시트를 이 시뮬레이터에 다시 업로드하여 재검토할 수 있습니다.'],
+    ];
+    const ws5=XLSX.utils.aoa_to_sheet(summaryData);
+    ws5['!cols']=[{wch:24},{wch:30}];
+    XLSX.utils.book_append_sheet(wb, ws5, '요약');
+
+    // ── 3. 파일 다운로드 ──
+    const fname=`TOBE_체계_${new Date().toLocaleDateString('ko-KR').replace(/\. /g,'-').replace('.','')}.xlsx`;
+    XLSX.writeFile(wb, fname);
+    toast(`TO-BE 엑셀 추출 완료 — ${rows.length}행 (${mapped_cnt}개 문서 + ${empty.length}개 빈 폴더)`,'success');
+
+  }catch(err){
+    console.error(err);
+    toast('엑셀 생성 오류: '+err.message,'error');
+  }
 }
 
 // TEMPLATE
