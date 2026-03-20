@@ -1184,22 +1184,46 @@ function bldTN(node){
   inp.addEventListener('click',e=>e.stopPropagation());
   const dc=cntDocs(node);const badge=document.createElement('span');if(dc>0){badge.className='dcb-badge';badge.textContent=dc+'개';}
   const acts=document.createElement('div');acts.className='tbacts';
-  if(node.level<3){const ab=document.createElement('button');ab.className='btn btn-ghost btn-sm btn-icon';ab.title='하위 추가';ab.textContent='+';ab.addEventListener('click',e=>{e.stopPropagation();addTobeChild(node.id,node.level);});acts.appendChild(ab);}
+  acts.draggable=false;
+  acts.addEventListener('mousedown',e=>e.stopPropagation());
+  acts.addEventListener('dragstart',e=>e.stopPropagation());
+  if(node.level<3){
+    const ab=document.createElement('button');
+    ab.className='btn btn-ghost btn-sm btn-icon';ab.title='하위 폴더 추가';ab.textContent='+';
+    ab.draggable=false;
+    ab.addEventListener('mousedown',e=>e.stopPropagation());
+    ab.addEventListener('click',e=>{e.stopPropagation();e.preventDefault();addTobeChild(node.id,node.level);});
+    acts.appendChild(ab);
+  }
   // 복사 버튼
   const cpb=document.createElement('button');cpb.className='btn btn-ghost btn-sm btn-icon';cpb.title='이 폴더 복사 (구조만, 문서 제외)';cpb.textContent='📋';
+  cpb.draggable=false;
+  cpb.addEventListener('mousedown',e=>e.stopPropagation());
   cpb.addEventListener('click',e=>{e.stopPropagation();copyNode(node.id);});acts.appendChild(cpb);
-  // 붙여넣기 버튼 (클립보드에 내용 있을 때만 활성)
+  // 붙여넣기 버튼
   const ppb=document.createElement('button');ppb.className='btn btn-ghost btn-sm btn-icon';ppb.title='복사한 폴더를 바로 아래에 붙여넣기';
   ppb.textContent='📌';ppb.style.opacity=clipboardNode?'1':'0.3';ppb.style.cursor=clipboardNode?'pointer':'default';
+  ppb.draggable=false;
+  ppb.addEventListener('mousedown',e=>e.stopPropagation());
   ppb.addEventListener('click',e=>{e.stopPropagation();if(clipboardNode)pasteNode(node.id);else toast('먼저 복사할 폴더를 선택하세요','warn');});acts.appendChild(ppb);
-  const db=document.createElement('button');db.className='btn btn-ghost btn-sm btn-icon';db.title='삭제';db.style.color='var(--accent-red)';db.textContent='x';db.addEventListener('click',e=>{e.stopPropagation();delTN(node.id);});acts.appendChild(db);
+  // 삭제 버튼
+  const db=document.createElement('button');db.className='btn btn-ghost btn-sm btn-icon';db.title='삭제';db.style.color='var(--accent-red)';db.textContent='x';
+  db.draggable=false;
+  db.addEventListener('mousedown',e=>e.stopPropagation());
+  db.addEventListener('click',e=>{e.stopPropagation();delTN(node.id);});acts.appendChild(db);
   item.appendChild(fcb);item.appendChild(tog);item.appendChild(ico);item.appendChild(inp);item.appendChild(badge);item.appendChild(acts);
   // 선택 하이라이트
   if(tobeSelected.has(node.id)) item.classList.add('tobe-sel');
-  // 드래그 드롭 — 모든 레벨 허용
-  item.addEventListener('dragover',e=>{e.preventDefault();item.classList.add('dovo');});
-  item.addEventListener('dragleave',()=>item.classList.remove('dovo'));
+  // 드래그 드롭 — acts 버튼 영역 제외하고 drop 허용
+  item.addEventListener('dragover',e=>{
+    if(e.target.closest('.tbacts'))return; // 버튼 영역에서는 무시
+    e.preventDefault();item.classList.add('dovo');
+  });
+  item.addEventListener('dragleave',e=>{
+    if(!item.contains(e.relatedTarget))item.classList.remove('dovo');
+  });
   item.addEventListener('drop',e=>{
+    if(e.target.closest('.tbacts'))return;
     e.preventDefault();item.classList.remove('dovo');
     const docs=draggedDocs.length>0?[...draggedDocs]:(draggedDoc?[draggedDoc.id]:[]);
     if(docs.length>0){saveUndoState();docs.forEach(id=>mapDoc(id,node.id,true));finalizeMapDoc();}
