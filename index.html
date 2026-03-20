@@ -169,7 +169,7 @@ body{font-family:'IBM Plex Sans KR',sans-serif;background:var(--bg-base);color:v
 .tbi.dovo{border-color:#496259;background:rgba(73,98,89,0.08);box-shadow:0 0 8px rgba(73,98,89,0.18);}
 .tbli{background:transparent;border:none;outline:none;color:var(--text-primary);font-family:'IBM Plex Sans KR',sans-serif;font-size:12px;flex:1;min-width:40px;}
 .tbli:focus{background:#e8f0ee;border-radius:2px;padding:0 3px;}
-.tbacts{display:flex;gap:2px;margin-left:auto;flex-shrink:0;}
+.tbacts{display:flex;gap:2px;margin-left:auto;flex-shrink:0;position:relative;z-index:2;}
 .tbch{padding-left:16px;display:none;}.tbch.open{display:block;}
 .tbdl{padding:4px 6px;display:flex;flex-direction:column;gap:0;}
 .tbdc{display:flex;align-items:center;gap:4px;background:rgba(73,98,89,0.07);border:1px solid rgba(73,98,89,0.22);border-radius:4px;padding:4px 7px;font-size:11px;color:#3a5049;width:100%;box-sizing:border-box;margin-bottom:2px;}
@@ -1185,38 +1185,34 @@ function bldTN(node){
   const dc=cntDocs(node);const badge=document.createElement('span');if(dc>0){badge.className='dcb-badge';badge.textContent=dc+'개';}
   const acts=document.createElement('div');acts.className='tbacts';
   acts.draggable=false;
-  acts.addEventListener('mousedown',e=>e.stopPropagation());
-  acts.addEventListener('dragstart',e=>e.stopPropagation());
+  acts.addEventListener('dragstart',e=>{e.stopPropagation();e.preventDefault();});
   if(node.level<3){
     const ab=document.createElement('button');
     ab.className='btn btn-ghost btn-sm btn-icon';ab.title='하위 폴더 추가';ab.textContent='+';
     ab.draggable=false;
-    ab.addEventListener('mousedown',e=>e.stopPropagation());
     ab.addEventListener('click',e=>{e.stopPropagation();e.preventDefault();addTobeChild(node.id,node.level);});
     acts.appendChild(ab);
   }
   // 복사 버튼
   const cpb=document.createElement('button');cpb.className='btn btn-ghost btn-sm btn-icon';cpb.title='이 폴더 복사 (구조만, 문서 제외)';cpb.textContent='📋';
   cpb.draggable=false;
-  cpb.addEventListener('mousedown',e=>e.stopPropagation());
   cpb.addEventListener('click',e=>{e.stopPropagation();copyNode(node.id);});acts.appendChild(cpb);
   // 붙여넣기 버튼
   const ppb=document.createElement('button');ppb.className='btn btn-ghost btn-sm btn-icon';ppb.title='복사한 폴더를 바로 아래에 붙여넣기';
   ppb.textContent='📌';ppb.style.opacity=clipboardNode?'1':'0.3';ppb.style.cursor=clipboardNode?'pointer':'default';
   ppb.draggable=false;
-  ppb.addEventListener('mousedown',e=>e.stopPropagation());
   ppb.addEventListener('click',e=>{e.stopPropagation();if(clipboardNode)pasteNode(node.id);else toast('먼저 복사할 폴더를 선택하세요','warn');});acts.appendChild(ppb);
   // 삭제 버튼
   const db=document.createElement('button');db.className='btn btn-ghost btn-sm btn-icon';db.title='삭제';db.style.color='var(--accent-red)';db.textContent='x';
   db.draggable=false;
-  db.addEventListener('mousedown',e=>e.stopPropagation());
   db.addEventListener('click',e=>{e.stopPropagation();delTN(node.id);});acts.appendChild(db);
   item.appendChild(fcb);item.appendChild(tog);item.appendChild(ico);item.appendChild(inp);item.appendChild(badge);item.appendChild(acts);
   // 선택 하이라이트
   if(tobeSelected.has(node.id)) item.classList.add('tobe-sel');
-  // 드래그 드롭 — acts 버튼 영역 제외하고 drop 허용
+  // 드래그 드롭 — AS-IS 문서 드래그 중일 때만 drop zone 활성화
   item.addEventListener('dragover',e=>{
-    if(e.target.closest('.tbacts'))return; // 버튼 영역에서는 무시
+    if(!draggedDoc&&draggedDocs.length===0)return; // 문서 드래그 중이 아니면 무시
+    if(e.target.closest('.tbacts'))return;
     e.preventDefault();item.classList.add('dovo');
   });
   item.addEventListener('dragleave',e=>{
