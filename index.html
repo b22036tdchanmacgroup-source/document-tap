@@ -578,6 +578,15 @@ function fsvg(level,sz=16){
 function uid(){return 'n'+(nodeIdC++);}
 function did(){return 'd'+(docIdC++);}
 
+// 트리 복원 후 반드시 호출 — 기존 노드 ID와 충돌하지 않도록 nodeIdC 동기화
+function syncNodeIdC(nodes){
+  nodes.forEach(n=>{
+    const num=parseInt(String(n.id).replace(/^n/,''),10);
+    if(!isNaN(num)&&num>=nodeIdC) nodeIdC=num+1;
+    syncNodeIdC(n.children);
+  });
+}
+
 function toast(msg,type='info'){
   const el=document.createElement('div');el.className=`toast ${type}`;
   const ic={info:'ℹ️',success:'✅',error:'❌',warn:'⚠️'};
@@ -1515,7 +1524,7 @@ function lsLoad(){
     if(activeSlot!==null&&savedSlots[activeSlot]){
       const slot=savedSlots[activeSlot];
       tobeTree=JSON.parse(JSON.stringify(slot.tree));
-      nodeIdC=100000+activeSlot*10000;
+      syncNodeIdC(tobeTree); // 기존 ID와 충돌 방지
       allDocs.forEach(d=>{d.mapped=false;d.tobeNodeId=null;});
       slot.mappings.forEach(m=>{const doc=allDocs.find(d=>d.id===m.id);if(doc){doc.mapped=m.mapped;doc.tobeNodeId=m.tobeNodeId;}});
       renderTobeTree();renderAsIsTree();updateStats();updateProgress();
@@ -1586,7 +1595,7 @@ function loadSlot(idx){
   if(!slot){toast(`슬롯 ${idx+1}은 비어있습니다`,'info');return;}
   if(activeSlot!==null&&activeSlot!==idx&&!confirm(`슬롯 ${idx+1} "${slot.name}"을 불러옵니다. 현재 작업이 초기화됩니다.`))return;
   tobeTree=JSON.parse(JSON.stringify(slot.tree));
-  nodeIdC=100000+idx*10000;
+  syncNodeIdC(tobeTree); // 기존 ID와 충돌 방지
   allDocs.forEach(d=>{d.mapped=false;d.tobeNodeId=null;});
   slot.mappings.forEach(m=>{const doc=allDocs.find(d=>d.id===m.id);if(doc){doc.mapped=m.mapped;doc.tobeNodeId=m.tobeNodeId;}});
   activeSlot=idx;renderTobeTree();renderAsIsTree();updateStats();updateProgress();renderSlots();
@@ -1909,12 +1918,12 @@ function importJSON(e){
         document.getElementById('importES').style.display='none';
       }
 
-      // 2단계: To-be 트리 복원 (node.docs 배열은 아직 비워둠 — 3단계에서 재구성)
+      // 2단계: To-be 트리 복원
       if(data.tobe&&data.tobe.length){
-        // tobe 노드의 docs 배열을 일단 초기화 (id 불일치 방지)
         function clearNodeDocs(nodes){nodes.forEach(n=>{n.docs=[];clearNodeDocs(n.children);});}
         tobeTree=JSON.parse(JSON.stringify(data.tobe));
         clearNodeDocs(tobeTree);
+        syncNodeIdC(tobeTree); // 기존 ID와 충돌 방지
         document.getElementById('tobeES').style.display='none';
       }
 
