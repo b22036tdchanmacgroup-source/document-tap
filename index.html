@@ -408,9 +408,34 @@ body{font-family:'IBM Plex Sans KR',sans-serif;background:var(--bg-base);color:v
     </div>
   </div>
   <div class="tc" id="t-visual" style="display:none">
+    <div style="padding:6px 9px;background:var(--card-r);border-bottom:1px solid var(--border-r);display:flex;align-items:center;gap:6px;flex-shrink:0;">
+      <span style="font-size:11px;color:var(--text-muted)">TO-BE 문서 체계 시각화</span>
+      <div style="margin-left:auto;display:flex;gap:5px;">
+        <button class="btn btn-sm" onclick="openTobeVizFull()" style="background:rgba(73,98,89,0.15);color:#3a5049;border:1px solid rgba(73,98,89,0.35);font-size:11px;">⛶ 전체화면</button>
+        <button class="btn btn-sm" onclick="exportTobeVizHTML()" style="background:rgba(73,98,89,0.8);color:#fff;border:none;font-size:11px;">⬇ HTML 추출</button>
+        <button class="btn btn-sm" onclick="exportTobeVizPDF()" style="background:#bd5429;color:#fff;border:none;font-size:11px;">⬇ PDF 추출</button>
+      </div>
+    </div>
     <div class="viz-wrap" id="tobeVizCon"><div class="es"><div class="ei">🏗</div><div class="et">To-Be 체계를 먼저 구성해주세요</div></div></div>
   </div>
 </div>
+</div>
+
+<!-- TO-BE 시각화 전체화면 모달 -->
+<div class="mo" id="tobeVizFullModal">
+  <div style="background:var(--panel-r);border:1px solid var(--border-r);border-radius:8px;width:98vw;max-width:1600px;height:92vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,0.18);">
+    <div style="padding:12px 18px;background:var(--card-r);border-bottom:1px solid var(--border-r);display:flex;align-items:center;gap:10px;flex-shrink:0;">
+      <span style="font-size:16px;">🗂</span>
+      <span style="font-size:14px;font-weight:700;color:#3a5049;">TO-BE 문서 체계 — 시각적 구조도</span>
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text-muted);padding:2px 7px;background:rgba(73,98,89,0.1);border-radius:3px;" id="vizFullStats"></span>
+      <div style="margin-left:auto;display:flex;gap:6px;align-items:center;">
+        <button class="btn btn-sm" onclick="exportTobeVizHTML()" style="background:rgba(73,98,89,0.8);color:#fff;border:none;">⬇ HTML 저장</button>
+        <button class="btn btn-sm" onclick="exportTobeVizPDF()" style="background:#bd5429;color:#fff;border:none;">⬇ PDF 인쇄</button>
+        <button class="mc" onclick="closeModal('tobeVizFullModal')" style="font-size:18px;padding:2px 8px;">✕</button>
+      </div>
+    </div>
+    <div style="flex:1;overflow:auto;padding:16px;" id="tobeVizFullCon"></div>
+  </div>
 </div>
 
 <!-- REPORT MODAL -->
@@ -587,6 +612,224 @@ function syncNodeIdC(nodes){
   });
 }
 
+// ═══════════════════════════════════════════════
+// TO-BE 시각화 전체화면 / HTML추출 / PDF추출
+// ═══════════════════════════════════════════════
+
+// 시각화용 HTML 문자열 생성 (모달용·추출용 공용)
+function buildVizHTMLString(forExport=false){
+  if(!tobeTree.length) return '<p style="text-align:center;color:#888;padding:40px">구성된 TO-BE 체계가 없습니다.</p>';
+
+  const mapped=allDocs.filter(d=>d.mapped).length;
+  const total=allDocs.length;
+  const pct=total?Math.round(mapped/total*100):0;
+  let folders=0; function cf(ns){ns.forEach(n=>{folders++;cf(n.children);});} cf(tobeTree);
+
+  // 색상 팔레트
+  const lv0col='#bd5429',lv1col='#496259',lv2col='#7a5c8a',lv3col='#6a9990';
+  const docCol='#3a5049';
+
+  function nodeToHTML(node, depth){
+    const dc=cntDocs(node);
+    const isEmpty=dc===0;
+    const borderColor=[lv0col,lv1col,lv2col,lv3col][Math.min(depth,3)];
+    const bgColor=['rgba(189,84,41,0.04)','rgba(73,98,89,0.04)','rgba(122,92,138,0.04)','rgba(106,153,144,0.04)'][Math.min(depth,3)];
+    const labelSize=[15,13,12,11][Math.min(depth,3)];
+    const labelWeight=[700,600,500,400][Math.min(depth,3)];
+    const labelColor=['#a0471f','#3a5049','#634d72','#5a7a75'][Math.min(depth,3)];
+
+    let docsHTML='';
+    if(node.docs.length>0){
+      docsHTML=`<div style="margin-top:6px;padding:6px 8px;background:rgba(73,98,89,0.05);border-radius:4px;border:1px solid rgba(73,98,89,0.12);">`;
+      node.docs.forEach(did=>{
+        const doc=allDocs.find(d=>d.id===did);if(!doc)return;
+        const nm=doc.tobeLabel||doc.name;
+        docsHTML+=`<div style="display:flex;align-items:center;gap:5px;padding:2px 0;font-size:10px;color:${docCol};border-bottom:1px dashed rgba(73,98,89,0.12);">
+          <span style="flex-shrink:0;opacity:0.5">📄</span>
+          <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${nm}">${nm}</span>
+          ${doc.version?`<span style="font-family:monospace;font-size:9px;color:#888;flex-shrink:0">${doc.version}</span>`:''}
+        </div>`;
+      });
+      docsHTML+=`</div>`;
+    }
+
+    let childrenHTML='';
+    if(node.children.length>0){
+      if(depth<=1){
+        // 가로 카드 배치 (depth 0,1)
+        childrenHTML=`<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;">`;
+        node.children.forEach(c=>{ childrenHTML+=`<div style="flex:1;min-width:160px;max-width:280px;">${nodeToHTML(c,depth+1)}</div>`; });
+        childrenHTML+=`</div>`;
+      } else {
+        // 세로 리스트 (depth 2+)
+        childrenHTML=`<div style="margin-top:6px;padding-left:10px;border-left:2px solid ${borderColor}22;">`;
+        node.children.forEach(c=>{ childrenHTML+=nodeToHTML(c,depth+1); });
+        childrenHTML+=`</div>`;
+      }
+    }
+
+    const badge=`<span style="font-family:monospace;font-size:9px;padding:1px 5px;border-radius:8px;background:${isEmpty?'rgba(189,84,41,0.1)':'rgba(73,98,89,0.12)'};color:${isEmpty?'#a0471f':lv1col};flex-shrink:0;">${dc>0?dc+'개':'비어있음'}</span>`;
+
+    return `<div style="background:${bgColor};border:1px solid ${borderColor}22;border-left:3px solid ${borderColor};border-radius:5px;padding:8px 10px;margin-bottom:6px;">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:${(docsHTML||childrenHTML)?'4px':'0'};">
+        <span style="font-size:${labelSize}px;font-weight:${labelWeight};color:${labelColor};flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${node.label}</span>
+        ${badge}
+      </div>
+      ${docsHTML}${childrenHTML}
+    </div>`;
+  }
+
+  let body='';
+  tobeTree.forEach(grp=>{
+    const dc=cntDocs(grp);
+    body+=`<div style="margin-bottom:20px;">
+      <div style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:rgba(189,84,41,0.07);border:1px solid rgba(189,84,41,0.25);border-radius:6px;margin-bottom:10px;">
+        <span style="font-size:16px;font-weight:700;color:${lv0col};">${grp.label}</span>
+        <span style="font-family:monospace;font-size:10px;padding:2px 6px;border-radius:8px;background:rgba(189,84,41,0.12);color:${lv0col};">${dc}개 배치</span>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;">`;
+    grp.children.forEach(tab=>{
+      const dt=cntDocs(tab);
+      body+=`<div style="flex:1;min-width:200px;max-width:320px;background:#faf8f5;border:1px solid rgba(73,98,89,0.2);border-top:3px solid ${lv1col};border-radius:6px;overflow:hidden;">
+        <div style="padding:8px 12px;background:rgba(73,98,89,0.06);border-bottom:1px solid rgba(73,98,89,0.12);display:flex;align-items:center;gap:6px;">
+          <span style="font-size:12px;font-weight:600;color:${lv1col};flex:1;">${tab.label}</span>
+          <span style="font-family:monospace;font-size:9px;padding:1px 5px;border-radius:8px;background:rgba(73,98,89,0.12);color:${lv1col};">${dt}개</span>
+        </div>
+        <div style="padding:8px;">`;
+      tab.children.forEach(cat=>{body+=nodeToHTML(cat,2);});
+      if(tab.docs.length){
+        tab.docs.forEach(did=>{
+          const doc=allDocs.find(d=>d.id===did);if(!doc)return;
+          const nm=doc.tobeLabel||doc.name;
+          body+=`<div style="display:flex;align-items:center;gap:5px;padding:3px 0;font-size:10px;color:${docCol};border-bottom:1px dashed rgba(73,98,89,0.12);">
+            <span style="opacity:0.5">📄</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${nm}</span>
+          </div>`;
+        });
+      }
+      if(!tab.children.length&&!tab.docs.length){
+        body+=`<div style="font-size:10px;color:#aaa;text-align:center;padding:10px 0;">비어있음</div>`;
+      }
+      body+=`</div></div>`;
+    });
+    // 그룹 직속 문서
+    if(grp.docs.length){
+      body+=`<div style="flex:1;min-width:200px;">`;
+      grp.docs.forEach(did=>{
+        const doc=allDocs.find(d=>d.id===did);if(!doc)return;
+        body+=`<div style="font-size:10px;color:${docCol};padding:2px 0;">📄 ${doc.tobeLabel||doc.name}</div>`;
+      });
+      body+=`</div>`;
+    }
+    body+=`</div></div>`;
+  });
+
+  const summaryBar=`
+    <div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;">
+      <div style="flex:1;min-width:120px;background:#faf8f5;border:1px solid #e0d8d0;border-radius:6px;padding:12px 16px;text-align:center;">
+        <div style="font-size:22px;font-weight:700;color:${lv0col};font-family:monospace;">${total}</div>
+        <div style="font-size:10px;color:#888;margin-top:2px;">AS-IS 전체 문서</div>
+      </div>
+      <div style="flex:1;min-width:120px;background:#faf8f5;border:1px solid #e0d8d0;border-radius:6px;padding:12px 16px;text-align:center;">
+        <div style="font-size:22px;font-weight:700;color:${lv1col};font-family:monospace;">${mapped}</div>
+        <div style="font-size:10px;color:#888;margin-top:2px;">이관 완료</div>
+      </div>
+      <div style="flex:1;min-width:120px;background:#faf8f5;border:1px solid #e0d8d0;border-radius:6px;padding:12px 16px;text-align:center;">
+        <div style="font-size:22px;font-weight:700;color:${lv2col};font-family:monospace;">${total-mapped}</div>
+        <div style="font-size:10px;color:#888;margin-top:2px;">미이관</div>
+      </div>
+      <div style="flex:1;min-width:120px;background:#faf8f5;border:1px solid #e0d8d0;border-radius:6px;padding:12px 16px;text-align:center;">
+        <div style="font-size:22px;font-weight:700;color:#3d7a6e;font-family:monospace;">${pct}%</div>
+        <div style="font-size:10px;color:#888;margin-top:2px;">이관률</div>
+      </div>
+      <div style="flex:1;min-width:120px;background:#faf8f5;border:1px solid #e0d8d0;border-radius:6px;padding:12px 16px;text-align:center;">
+        <div style="font-size:22px;font-weight:700;color:#888;font-family:monospace;">${folders}</div>
+        <div style="font-size:10px;color:#888;margin-top:2px;">TO-BE 폴더 수</div>
+      </div>
+    </div>`;
+
+  return summaryBar+body;
+}
+
+function openTobeVizFull(){
+  if(!tobeTree.length){toast('TO-BE 체계를 먼저 구성해주세요','warn');return;}
+  const con=document.getElementById('tobeVizFullCon');
+  con.innerHTML=buildVizHTMLString(false);
+  // 통계 레이블
+  const mapped=allDocs.filter(d=>d.mapped).length;
+  let folders=0; function cf(ns){ns.forEach(n=>{folders++;cf(n.children);});} cf(tobeTree);
+  document.getElementById('vizFullStats').textContent=`폴더 ${folders}개 · 이관 ${mapped}/${allDocs.length}`;
+  openModal('tobeVizFullModal');
+}
+
+function exportTobeVizHTML(){
+  if(!tobeTree.length){toast('TO-BE 체계를 먼저 구성해주세요','warn');return;}
+  const bodyContent=buildVizHTMLString(true);
+  const date=new Date().toLocaleDateString('ko-KR');
+  const html=`<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>TO-BE 문서 체계 — ${date}</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Malgun Gothic','Apple SD Gothic Neo',sans-serif;background:#f3f1ee;color:#2a2118;padding:24px;}
+  h1{font-size:20px;font-weight:700;color:#bd5429;margin-bottom:4px;}
+  .subtitle{font-size:11px;color:#888;margin-bottom:20px;font-family:monospace;}
+  @media print{body{padding:12px;background:#fff;}}
+</style>
+</head>
+<body>
+  <h1>TO-BE 문서 체계</h1>
+  <div class="subtitle">생성일시: ${new Date().toLocaleString('ko-KR')} · DocFlow 시뮬레이터</div>
+  ${bodyContent}
+</body>
+</html>`;
+  const blob=new Blob([html],{type:'text/html;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=`TO-BE_문서체계_${date.replace(/\. /g,'-').replace('.','')}.html`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('HTML 파일 저장 완료 — 브라우저에서 열거나 인쇄하세요','success');
+}
+
+function exportTobeVizPDF(){
+  if(!tobeTree.length){toast('TO-BE 체계를 먼저 구성해주세요','warn');return;}
+  const bodyContent=buildVizHTMLString(true);
+  const date=new Date().toLocaleDateString('ko-KR');
+  const html=`<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>TO-BE 문서 체계</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Malgun Gothic','Apple SD Gothic Neo',sans-serif;background:#fff;color:#2a2118;padding:20px;font-size:12px;}
+  h1{font-size:18px;font-weight:700;color:#bd5429;margin-bottom:3px;}
+  .subtitle{font-size:10px;color:#888;margin-bottom:16px;font-family:monospace;}
+  @page{margin:15mm;}
+  @media print{
+    body{padding:0;}
+    div{break-inside:avoid;}
+  }
+</style>
+</head>
+<body>
+  <h1>TO-BE 문서 체계</h1>
+  <div class="subtitle">생성일시: ${new Date().toLocaleString('ko-KR')} · DocFlow 시뮬레이터</div>
+  ${bodyContent}
+  <script>window.onload=function(){window.print();}<\/script>
+</body>
+</html>`;
+  const w=window.open('','_blank','width=1000,height=800');
+  if(!w){toast('팝업이 차단됐습니다. 팝업 허용 후 다시 시도하세요','warn');return;}
+  w.document.write(html);
+  w.document.close();
+  toast('PDF 인쇄 창이 열렸습니다 — "PDF로 저장"을 선택하세요','info');
+}
+
 function toast(msg,type='info'){
   const el=document.createElement('div');el.className=`toast ${type}`;
   const ic={info:'ℹ️',success:'✅',error:'❌',warn:'⚠️'};
@@ -621,10 +864,7 @@ function swR(tab){
   document.getElementById(`r-${tab}`).classList.add('active');
 }
 
-// ────────────────────────────────────────────────────────────────────────────
-// PARSE & PROCESS (엑셀 구조에 최적화된 수정)
-// ────────────────────────────────────────────────────────────────────────────
-
+// PARSE
 function parsePastedData(){
   const raw=document.getElementById('pasteArea').value.trim();
   if(!raw){toast('데이터를 입력해주세요','error');return;}
@@ -632,42 +872,14 @@ function parsePastedData(){
   try{const p=JSON.parse(raw);rows=Array.isArray(p)?p:[p];}catch{
     const lines=raw.split('\n').filter(l=>l.trim());
     const sep=raw.includes('\t')?'\t':',';
-    rows=lines.map(l=>{const c=l.split(sep).map(x=>x.trim().replace(/^"|"$/g,''));return{confirm:c[0],path1:c[1],path2:c[2],path4:c[3],path5:c[4]};});
-    if(rows[0]&&['path1','탭','그룹'].some(h=>String(rows[0].confirm||'').toLowerCase().includes(h.toLowerCase())))rows.shift();
+    rows=lines.map(l=>{const c=l.split(sep).map(x=>x.trim().replace(/^"|"$/g,''));return{confirm:c[0],path1:c[1],path2:c[2],path3:c[3],path4:c[4],path5:c[5]};});
+    if(rows[0]&&['confirm','path1','분류','카테고리','탭'].some(h=>String(rows[0].confirm||'').toLowerCase().includes(h.toLowerCase())))rows.shift();
   }
   processData(rows);
 }
 
-function handleFileUpload(event){
-    if(event.target.files[0]) processFile(event.target.files[0]);
-}
-
-function processFile(file){
-  const ext=file.name.split('.').pop().toLowerCase(),reader=new FileReader();
-  if(ext==='csv'){reader.onload=ev=>{document.getElementById('pasteArea').value=ev.target.result;parsePastedData();};reader.readAsText(file,'UTF-8');}
-  else if(['xlsx','xls'].includes(ext)){
-    reader.onload=ev=>{
-      try{
-        const wb=XLSX.read(ev.target.result,{type:'array'}),ws=wb.Sheets[wb.SheetNames[0]];
-        const data=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
-        if(!data.length){toast('빈 파일','error');return;}
-        const hdr=data[0].map(h=>String(h).toLowerCase().trim());
-        const hasH=['path1','분류','탭'].some(h=>hdr.some(hh=>hh.includes(h)));
-        const rows=data.slice(hasH?1:0).filter(r=>r.some(c=>c)).map(r=>({
-            confirm:String(r[0]||'').trim(), // A열 (path1)
-            path1:String(r[1]||'').trim(),   // B열 (path2)
-            path2:String(r[2]||'').trim(),   // C열 (path3)
-            path4:String(r[3]||'').trim(),   // D열 (path4) -> 문서명 (핵심)
-            path5:String(r[4]||'').trim()    // E열 (path5) -> 첨부
-        }));
-        processData(rows);toast(`${file.name} 업로드 완료`,'success');
-      }catch(err){toast('파싱 오류: '+err.message,'error');}
-    };reader.readAsArrayBuffer(file);
-  }else toast('지원하지 않는 파일 형식','error');
-}
-
 function processData(rows){
-  asIsData=rows.filter(r=>r.path4); // D열(path4)에 값이 있는 행은 무조건 수집
+  asIsData=rows.filter(r=>r.path4||r.path3);
   buildAsIsTree();renderAsIsTree();swA('tree');
   document.getElementById('importES').style.display='none';
   updateStats();updateProgress();
@@ -679,62 +891,80 @@ function buildAsIsTree(){
   asIsTreeData={};allDocs=[];docIdC=1;
   const idCountMap={};
   asIsData.forEach(row=>{
-    const c=row.confirm||'(미분류)',p1=row.path1||'',p2=row.path2||'',p4=row.path4||'',p5=row.path5||'';
-    
+    const c=row.confirm||'(미분류)',p1=row.path1||'',p2=row.path2||'',p3=row.path3||'',p4=row.path4||'',p5=row.path5||'';
     if(!asIsTreeData[c])asIsTreeData[c]={};
     if(!asIsTreeData[c][p1])asIsTreeData[c][p1]={};
-    if(!asIsTreeData[c][p1][p2])asIsTreeData[c][p1][p2]=[];
-
-    // 핵심 로직: D열(p4)이 있으면 문서로 간주. E열(p5)이 있으면 결합.
+    if(!asIsTreeData[c][p1][p2])asIsTreeData[c][p1][p2]={};
+    if(!asIsTreeData[c][p1][p2][p3])asIsTreeData[c][p1][p2][p3]=[];
     if(p4){
-      const combinedName = p5 ? `${p4} ${p5}` : p4;
-      
-      const pathKey=[c,p1,p2,p4,p5].join('||');
+      const name=p5?`${p4} (${p5})`:p4;
+      // 요청2: 경로 기반 유니크 ID — 같은 이름이라도 다른 폴더면 다른 문서
+      const pathKey=[c,p1,p2,p3,p4,p5].join('||');
       idCountMap[pathKey]=(idCountMap[pathKey]||0)+1;
       const uniqueId='d_'+pathKey.replace(/[^a-zA-Z0-9가-힣]/g,'_')+'_'+idCountMap[pathKey];
-      
-      const d={
-          id:uniqueId,
-          name:combinedName,
-          rawName:p4, 
-          version:p5, 
-          path:[c,p1,p2,p4].filter(Boolean).join(' > '),
-          confirm:c, tab:p1, cat:p2, sub:'', // 구조 단순화
-          mapped:false,
-          tobeNodeId:null
-      };
-      asIsTreeData[c][p1][p2].push(d);
-      allDocs.push(d);
+      const d={id:uniqueId,name,rawName:p4,version:p5,path:[c,p1,p2,p3,p4].filter(Boolean).join(' > '),confirm:c,tab:p1,cat:p2,sub:p3,mapped:false,tobeNodeId:null};
+      asIsTreeData[c][p1][p2][p3].push(d);allDocs.push(d);
     }
   });
 }
 
-// ────────────────────────────────────────────────────────────────────────────
-// AS-IS 트리 렌더링 (구조에 맞춰 수정)
-// ────────────────────────────────────────────────────────────────────────────
+// FILE UPLOAD
+const dz=document.getElementById('dropZone');
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag-over');});
+dz.addEventListener('dragleave',()=>dz.classList.remove('drag-over'));
+dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('drag-over');if(e.dataTransfer.files[0])processFile(e.dataTransfer.files[0]);});
+function handleFileUpload(e){if(e.target.files[0])processFile(e.target.files[0]);}
+function processFile(file){
+  const ext=file.name.split('.').pop().toLowerCase(),reader=new FileReader();
+  if(ext==='csv'){reader.onload=ev=>{document.getElementById('pasteArea').value=ev.target.result;parsePastedData();};reader.readAsText(file,'UTF-8');}
+  else if(['xlsx','xls'].includes(ext)){
+    reader.onload=ev=>{
+      try{
+        const wb=XLSX.read(ev.target.result,{type:'array'}),ws=wb.Sheets[wb.SheetNames[0]];
+        const data=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+        if(!data.length){toast('빈 파일','error');return;}
+        const hdr=data[0].map(h=>String(h).toLowerCase().trim());
+        const hasH=['confirm','path1','분류','카테고리'].some(h=>hdr.some(hh=>hh.includes(h)));
+        const rows=data.slice(hasH?1:0).filter(r=>r.some(c=>c)).map(r=>({confirm:String(r[0]||'').trim(),path1:String(r[1]||'').trim(),path2:String(r[2]||'').trim(),path3:String(r[3]||'').trim(),path4:String(r[4]||'').trim(),path5:String(r[5]||'').trim()}));
+        processData(rows);toast(`${file.name} 업로드 완료`,'success');
+      }catch(err){toast('파싱 오류: '+err.message,'error');}
+    };reader.readAsArrayBuffer(file);
+  }else toast('지원하지 않는 파일 형식','error');
+}
 
+function togImp(){impOpen=!impOpen;document.getElementById('iBody').classList.toggle('open',impOpen);document.getElementById('iArrow').textContent=impOpen?'▲':'▼';}
+
+function loadSampleData(){
+  document.getElementById('pasteArea').value=`confirm\tpath1\tpath2\tpath3\tpath4\tpath5\n품질관리\t설계도서\t건축\t기본설계\t건축평면도\tRev.3\n품질관리\t설계도서\t건축\t기본설계\t건축입면도\tRev.2\n품질관리\t설계도서\t건축\t실시설계\t바닥마감상세도\tRev.1\n품질관리\t설계도서\t구조\t기초설계\t파일배치도\tRev.4\n품질관리\t설계도서\t구조\t기초설계\t구조평면도\tRev.2\n품질관리\t설계도서\t기계\t공조설비\t덕트배치도\tRev.1\n품질관리\t설계도서\t전기\t수변전설비\t단선결선도\tRev.3\n품질관리\t시공계획서\t토목\t가시설\t흙막이설계서\tVer.1\n품질관리\t시공계획서\t토목\t가시설\t지반조사보고서\tFinal\n품질관리\t시공계획서\t건축\t마감공사\t마감재승인요청서\tRev.2\n안전관리\t안전계획\t일반안전\t교육훈련\t안전교육일지\t2024-01\n안전관리\t안전계획\t일반안전\t교육훈련\t안전교육일지\t2024-02\n안전관리\t안전계획\t일반안전\t점검\t일일안전점검표\t2024-01\n안전관리\t안전계획\t특수공종\t고소작업\t안전작업허가서\tNo.001\n안전관리\t안전계획\t특수공종\t고소작업\t안전작업허가서\tNo.002\n안전관리\t위험성평가\t\t\t위험성평가서\tVer.2\n공무관리\t계약관리\t도급계약\t본계약\t공사도급계약서\tOriginal\n공무관리\t계약관리\t도급계약\t변경계약\t1차변경계약서\t\n공무관리\t계약관리\t하도급계약\t전문공사\t철근콘크리트공사 계약\tVer.1\n공무관리\t공정관리\t\t\t전체공정표\tRev.5\n공무관리\t공정관리\t\t\t월간공정표\t2024-03\n공무관리\t기성관리\t\t\t기성신청서\t3차\n자재관리\t자재승인\t건축자재\t마감재\t타일승인요청서\tA형\n자재관리\t자재승인\t건축자재\t마감재\t도장재승인요청서\tB형\n자재관리\t자재승인\t구조자재\t\t레미콘배합승인서\tRev.1\n자재관리\t발주관리\t\t\t자재발주요청서\tNo.015`;
+  if(!impOpen)togImp();parsePastedData();
+}
+
+// AS-IS TREE
 function renderAsIsTree(){
   const con=document.getElementById('asIsTreeEl');con.innerHTML='';
   if(!Object.keys(asIsTreeData).length){con.innerHTML='<div class="es"><div class="ei">📂</div><div class="et">데이터 없음</div></div>';return;}
   Object.entries(asIsTreeData).forEach(([c,tabs])=>{
-    const allDocsInC=Object.values(tabs).flatMap(t=>Object.values(t)).flat();
+    const allDocsInC=Object.values(tabs).flatMap(t=>Object.values(t)).flatMap(x=>Object.values(x)).flat();
     const tot=allDocsInC.length,mappedC=allDocsInC.filter(d=>d.mapped).length;
     const {el,ch}=mkTN(c,0,tot,true,mappedC);
     Object.entries(tabs).forEach(([p1,cats])=>{
-      const allDocsInP1=Object.values(cats).flat();
+      const allDocsInP1=Object.values(cats).flatMap(x=>Object.values(x)).flat();
       const cnt=allDocsInP1.length,mappedP1=allDocsInP1.filter(d=>d.mapped).length;
       const {el:e1,ch:c1}=mkTN(p1||'(탭 없음)',1,cnt,true,mappedP1);
-      Object.entries(cats).forEach(([p2,docs])=>{
-        const cnt2=docs.length,mappedP2=docs.filter(d=>d.mapped).length;
+      Object.entries(cats).forEach(([p2,subs])=>{
+        const allDocsInP2=Object.values(subs).flat();
+        const cnt2=allDocsInP2.length,mappedP2=allDocsInP2.filter(d=>d.mapped).length;
         const {el:e2,ch:c2}=mkTN(p2||'(카테고리 없음)',2,cnt2,false,mappedP2);
-        docs.forEach(d=>c2.appendChild(mkDI(d)));
-        c1.appendChild(e2);
-      });
-      ch.appendChild(e1);
+        Object.entries(subs).forEach(([p3,docs])=>{
+          if(!docs.length)return;
+          const mappedP3=docs.filter(d=>d.mapped).length;
+          const {el:e3,ch:c3}=mkTN(p3||'(서브카테고리 없음)',3,docs.length,false,mappedP3);
+          docs.forEach(d=>c3.appendChild(mkDI(d)));c2.appendChild(e3);
+        });c1.appendChild(e2);
+      });el.firstElementChild.nextElementSibling&&null;ch.appendChild(e1);
     });con.appendChild(el);
   });
 }
-
 
 function mkTN(label,level,count,open,mappedCount){
   const el=document.createElement('div');el.className=`tnode lv${level}`;
