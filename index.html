@@ -14,7 +14,7 @@
     <div class="logo-area">
       <div class="logo-icon">🎯</div>
       <div>
-        <div class="logo-title">HM Global S/W Documentation</div>
+        <div class="logo-title">한맥가족 PM TDC/GPD 문서 정리 테스트</div>
         <div class="logo-sub">S/W 중심 통합 문서 이관 시뮬레이터</div>
       </div>
     </div>
@@ -29,21 +29,16 @@
     <aside class="panel-left">
       <div class="p-header"><h3>제어 패널</h3></div>
 
-      <div class="card mb16">
-        <div class="card-title">1. 타겟 S/W 설정</div>
-        <div class="form-group">
-          <label>S/W 명칭 (키워드)</label>
-          <input type="text" id="target-sw-name" class="input-text" placeholder="예: BridgePlanner, 천지인" disabled>
-        </div>
-        <div class="form-group mt12">
-          <label>분류 템플릿 유형</label>
-          <select id="target-sw-type" class="input-select" disabled>
-            <option value="A">A (엔지니어링)</option>
-            <option value="B">B (GIS·데이터)</option>
-            <option value="C">C (시각화·서비스)</option>
-            <option value="D">D (그래픽·엔진)</option>
-          </select>
-        </div>
+        <div class="card mb16">
+          <div class="card-title">1. 타겟 S/W 설정</div>
+          <div class="form-group">
+            <label>시뮬레이션 대상 선택</label>
+            <select id="target-sw-select" class="input-select" disabled>
+              <option value="ALL">전체 진행 (기본 추천)</option>
+            </select>
+          </div>
+          <!-- 더 이상 타입 선택은 노출하지 않고 자동 지정됨 -->
+          <input type="hidden" id="target-sw-type" value="A">
         <div class="check-row mt12">
           <input type="checkbox" id="chk-all-sw">
           <label for="chk-all-sw" style="font-size:12px;font-weight:600;cursor:pointer;">전체 S/W 자동 이관</label>
@@ -52,9 +47,10 @@
       </div>
 
       <div class="card mb16">
-        <div class="card-title">📋 S/W 관리</div>
+        <div class="card-title">📋 시스템 관리</div>
         <button class="btn btn-dark-outline w-100 mb8" id="btn-open-sw-list">📋 S/W 리스트 & 분류 유형</button>
-        <div style="font-size:11px;color:var(--text3);">S/W 명칭·분야 편집, 폴더 구조 미리보기</div>
+        <button class="btn btn-dark-outline w-100 mb8" id="btn-open-rule-list">⚙️ 이관 규칙 (Rules) 설정</button>
+        <div style="font-size:11px;color:var(--text3);">S/W 목록 관리 및 명시적 이관 조건 룰셋 설정</div>
       </div>
 
       <div class="card mb16" id="stats-panel" style="display:none;">
@@ -64,6 +60,15 @@
           <div class="metric-card"><div class="metric-label">미분류</div><div class="metric-value" style="color:var(--terra)" id="stat-unclass">0</div></div>
         </div>
         <div style="height:160px;"><canvas id="chart-sim-result"></canvas></div>
+        
+        <!-- 📥 주요 유입 출처 요약 -->
+        <div id="origin-summary-container" style="display:none; margin-top:16px; border-top:1px solid var(--border); padding-top:12px;">
+          <div style="font-size:11px; font-weight:700; color:var(--text1); margin-bottom:8px;">📥 주요 이관 출처 (원본 부서)</div>
+          <ul id="origin-summary-list" style="list-style:none; padding:0; margin:0; font-size:11px; color:var(--text2);">
+             <!-- JS가 렌더링 -->
+          </ul>
+        </div>
+        
         <button class="btn btn-terra w-100 mt12" id="btn-open-report">📊 이관 검증 리포트</button>
         <button class="btn btn-dark-outline w-100 mt12" id="btn-open-flow">🔄 부서별 문서 흐름</button>
       </div>
@@ -82,6 +87,14 @@
           <div id="before-tree" style="display:none;"></div>
         </div>
         <div id="view-after" class="view-pane" style="background:var(--sage-l);">
+          <!-- 💡 동적 폴더 원리 설명 Box -->
+          <div style="background-color:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:12px 16px; margin: 16px 16px 0 16px; font-size:12px; color:var(--text2);">
+            <strong style="color:var(--d1);">💡 [알림] 하위(Depth 3, 4) 동적 폴더 구성 패턴</strong><br>
+            <span style="display:inline-block; margin-top:6px; line-height:1.4;">
+              엔진은 <b>1단계(S/W명)</b>와 <b>2단계(템플릿)</b>를 매핑한 뒤, <br>문서가 원래 있던 <b>과거 부서의 컨텍스트(D2, D3 폴더명)를 3, 4단계에 그대로 이식</b>합니다. (원본 작성자의 맥락 보존 목적)<br>
+              <i>[원본] 설계팀 > 구조팀 > 교량설계 (문서) ➡️ [이관] BridgePlanner > 기획·조사 > 구조팀 > 교량설계 (문서)</i>
+            </span>
+          </div>
           <div id="after-empty" class="empty-state"><div class="empty-icon">🎯</div>시뮬레이션을 실행해주세요.</div>
           <div id="after-tree" style="display:none;"></div>
         </div>
@@ -177,6 +190,67 @@
       <div class="report-footer">
         <div id="report-footer-info">검증일시: -</div>
         <button class="btn btn-sm btn-dark-outline" id="btn-close-report-bottom">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Rules Engine Builder -->
+  <div class="modal-overlay modal-lg" id="modal-rules">
+    <div class="modal-content" style="height:80vh;">
+      <div class="modal-header">
+        <h2>⚙️ 명시적 이관 규칙 (Rule) 설정</h2>
+        <button class="btn-close" id="btn-close-rules">✕</button>
+      </div>
+      <div style="padding:8px 16px;background:var(--surface2);border-bottom:1px solid var(--border);font-size:11px;color:var(--text2);">
+        규칙이 최상단부터 순차적으로 평가됩니다. 규칙에 걸리지 않은 문서는 기본 휴리스틱 엔진에 의해 분류됩니다.
+      </div>
+      <div class="modal-body" style="display:flex; flex-direction:column; gap:16px;">
+        <div class="add-row" style="display:grid; grid-template-columns: 1fr 1fr 1fr auto; gap:8px;">
+          <input type="text" id="add-rule-desc" placeholder="규칙 설명 (예: 설계서 강제 이관)">
+          <div style="display:flex; gap:4px;">
+            <select id="add-rule-field" class="input-select" style="width:70px;">
+              <option value="d0">D0(부서)</option>
+              <option value="d1">D1</option>
+              <option value="d2">D2</option>
+              <option value="d3">D3</option>
+              <option value="filename">파일명</option>
+            </select>
+            <select id="add-rule-op" class="input-select" style="width:70px;">
+              <option value="equals">일치(=)</option>
+              <option value="contains">포함</option>
+            </select>
+            <input type="text" id="add-rule-val" class="input-text" placeholder="조건 문자열" style="flex:1;">
+          </div>
+          <div style="display:flex; gap:4px;">
+            <select id="add-rule-sw" class="input-select" style="flex:1;"><option value="auto">(자동 S/W 식별)</option></select>
+            <select id="add-rule-cat" class="input-select" style="flex:1;">
+              <option value="1.기획·조사">1.기획·조사</option>
+              <option value="2.엔지니어링 설계">2.엔지니어링 설계</option>
+              <option value="3.기능 요건·명세">3.기능 요건·명세</option>
+              <option value="4.개발·구현">4.개발·구현</option>
+              <option value="5.검수·품질관리">5.검수·품질관리</option>
+              <option value="Z.작업장·공통참조">Z.작업장·공통참조</option>
+            </select>
+          </div>
+          <button class="btn btn-sm btn-primary" id="btn-add-rule">+ 룰 추가</button>
+        </div>
+        
+        <div style="flex:1; overflow-y:auto;">
+          <table class="sw-table">
+            <thead>
+              <tr>
+                <th style="width:5%">ON</th>
+                <th style="width:25%">설명</th>
+                <th style="width:30%">조건 (If)</th>
+                <th style="width:30%">타겟 (Then)</th>
+                <th style="width:10%">삭제</th>
+              </tr>
+            </thead>
+            <tbody id="rule-table-body">
+              <!-- Rules injected by JS -->
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   </div>
