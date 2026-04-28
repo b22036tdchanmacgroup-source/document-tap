@@ -26,7 +26,7 @@
 
   <main class="dashboard-layout">
     <!-- Left Panel -->
-    <aside class="panel-left">
+    <aside class="panel-left" id="sidebar">
       <div class="p-header"><h3>제어 패널</h3></div>
 
         <div class="card mb16">
@@ -70,9 +70,12 @@
         </div>
         
         <button class="btn btn-terra w-100 mt12" id="btn-open-report">📊 이관 검증 리포트</button>
-        <button class="btn btn-dark-outline w-100 mt12" id="btn-open-flow">🔄 부서별 문서 흐름</button>
+        <button class="btn btn-dark-outline w-100 mt12" id="btn-open-flow">📋 부서별 이관 내역</button>
       </div>
     </aside>
+    
+    <!-- Resizer -->
+    <div class="resizer" id="resizer"></div>
 
     <!-- Right Panel -->
     <section class="panel-right">
@@ -101,6 +104,7 @@
         <div id="view-compare" class="view-pane" style="padding:0;">
           <div id="compare-empty" class="empty-state"><div class="empty-icon">📊</div>시뮬레이션 실행 후 비교 결과를 확인하세요.</div>
           <div id="compare-content" style="display:none;"></div>
+          <div id="compare-visual-tab" style="display:none;"></div>
         </div>
       </div>
     </section>
@@ -143,6 +147,7 @@
         <div style="display:flex;gap:8px;align-items:center;">
           <button class="btn btn-sm btn-dark-outline" id="btn-sw-expand-all">📂 모두 펼치기</button>
           <button class="btn btn-sm btn-dark-outline" id="btn-sw-collapse-all">📁 모두 접기</button>
+          <button class="btn btn-sm btn-primary" id="btn-open-visual-map" style="background:var(--purple);">🗺️ 시각화 보기</button>
           <button class="btn-close" id="btn-close-sw-list">✕</button>
         </div>
       </div>
@@ -263,16 +268,28 @@
     </div>
   </div>
 
-  <!-- Modal: Flow Diagram (Sankey) -->
+  <!-- Modal: Flow Diagram → 부서별 이관 내역 -->
   <div class="modal-overlay modal-xl" id="modal-flow">
     <div class="modal-content" style="height:85vh;">
-      <div class="modal-header"><h2>🔄 부서별 문서 흐름 다이어그램</h2><button class="btn-close" id="btn-close-flow">✕</button></div>
-      <div class="modal-body" style="padding:16px;">
-        <div class="sankey-tabs">
-          <button class="sankey-tab active" data-smode="sw">부서 → S/W</button>
-          <button class="sankey-tab" data-smode="category">부서 → 카테고리</button>
+      <div class="modal-header"><h2>📋 부서별 문서 이관 내역</h2><button class="btn-close" id="btn-close-flow">✕</button></div>
+      <div class="modal-body" style="padding:16px; overflow-y:auto;">
+        <div id="dept-flow-summary"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Visual Classification Map (Simplified Hierarchy) -->
+  <div class="modal-overlay modal-xl" id="modal-visual-map">
+    <div class="modal-content" style="height:90vh;">
+      <div class="modal-header">
+        <h2>🗺️ S/W 분류 체계 시각화 맵</h2>
+        <div style="display:flex; gap:12px; align-items:center;">
+          <span style="font-size:12px; color:var(--text3);">* S/W별 탭(D1) 분포를 수평적으로 파악할 수 있는 요약 뷰입니다.</span>
+          <button class="btn-close" id="btn-close-visual-map">✕</button>
         </div>
-        <canvas id="sankey-canvas" style="width:100%;"></canvas>
+      </div>
+      <div class="modal-body" id="visual-map-body" style="background:var(--bg); padding:24px;">
+        <!-- JS가 렌더링 -->
       </div>
     </div>
   </div>
